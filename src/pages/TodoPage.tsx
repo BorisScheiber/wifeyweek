@@ -1,4 +1,10 @@
-import { LucidePlus, Check, Clock } from "lucide-react";
+import {
+  LucidePlus,
+  Check,
+  Clock,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { useEffect, useState, useRef, useMemo } from "react";
 import { todoService, type Todo } from "../services/todoService";
 import dayjs from "dayjs";
@@ -6,8 +12,39 @@ import dayjs from "dayjs";
 export default function TodoPage() {
   // 📅 Heute + aktueller Monat
   const now = dayjs();
-  const year = now.year();
-  const month = now.month(); // 0-basiert: Juni = 5
+  const [month, setMonth] = useState(now.month());
+  const [year, setYear] = useState(now.year());
+  const [showMonthModal, setShowMonthModal] = useState(false);
+
+  // Monatsnamen in voller und kurzer Form
+  const monthLabels = [
+    "Jänner",
+    "Februar",
+    "März",
+    "April",
+    "Mai",
+    "Juni",
+    "Juli",
+    "August",
+    "September",
+    "Oktober",
+    "November",
+    "Dezember",
+  ];
+  const monthShort = [
+    "Jän",
+    "Feb",
+    "Mär",
+    "Apr",
+    "Mai",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Okt",
+    "Nov",
+    "Dez",
+  ];
 
   // 🧠 Tage dynamisch erzeugen
   const dayNames = ["SO", "MO", "DI", "MI", "DO", "FR", "SA"];
@@ -26,10 +63,11 @@ export default function TodoPage() {
   });
 
   // 📍 Heute als vorausgewählten Tag setzen
-  const initialSelectedIndex = now.date() - 1;
+  const today = dayjs();
+  const isCurrentMonth = today.year() === year && today.month() === month;
+  const initialSelectedIndex = isCurrentMonth ? today.date() - 1 : 0;
   const [selectedIndex, setSelectedIndex] = useState(initialSelectedIndex);
   const [todos, setTodos] = useState<Todo[]>([]);
-  const [currentMonth, setCurrentMonth] = useState(now.format("MMMM YYYY")); // z. B. "Juni 2025"
   const dayRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const hasScrolledInitially = useRef(false);
 
@@ -84,6 +122,24 @@ export default function TodoPage() {
     setTodos(updated);
   }
 
+  // Monatsauswahl-Handler
+  const handleMonthSelect = (index: number) => {
+    const today = dayjs();
+    const isCurrentMonth = today.year() === year && today.month() === index;
+
+    // Berechne den passenden Tag im neuen Monat
+    const dayInNewMonth = Math.min(
+      today.date(),
+      dayjs(`${year}-${index + 1}`).daysInMonth()
+    );
+    const newSelectedIndex = isCurrentMonth ? dayInNewMonth - 1 : 0;
+
+    setMonth(index);
+    setSelectedIndex(newSelectedIndex);
+    setShowMonthModal(false);
+    hasScrolledInitially.current = false;
+  };
+
   return (
     <div className="pt-[80px]">
       {/* Fixierter Header */}
@@ -91,10 +147,10 @@ export default function TodoPage() {
         <div className="h-full px-4 flex items-center justify-between">
           <div className="w-6"></div>
           <button
-            onClick={() => alert("Monatsauswahl kommt später 😄")}
-            className="text-lg font-semibold tracking-wide"
+            onClick={() => setShowMonthModal(true)}
+            className="text-lg font-semibold tracking-wide hover:text-[#f1dec9] transition-colors"
           >
-            {currentMonth}
+            {monthLabels[month]} {year}
           </button>
           <button
             onClick={() => alert("Neue Aufgabe hinzufügen kommt später 😊")}
@@ -108,6 +164,7 @@ export default function TodoPage() {
       {/* Horizontale Tagesübersicht */}
       <div className="overflow-x-auto whitespace-nowrap px-4 py-3 flex gap-3 bg-[#faf4ef] scrollbar-hide">
         {days.map((day, index) => {
+          const isToday = day.fullDate === today.format("YYYY-MM-DD");
           const isSelected = index === selectedIndex;
           return (
             <button
@@ -173,6 +230,85 @@ export default function TodoPage() {
           </div>
         ))}
       </div>
+
+      {/* Monatsauswahl-Modal */}
+      {showMonthModal && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center"
+          onClick={(e) => {
+            // Nur schließen, wenn der Klick direkt auf dem Overlay war
+            if (e.target === e.currentTarget) {
+              setShowMonthModal(false);
+            }
+          }}
+        >
+          <div className="bg-[#faf4ef] rounded-xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-6">
+              <button
+                onClick={() => {
+                  const newYear = year - 1;
+
+                  // Prüfe, ob der heutige Tag im neuen Jahr existiert
+                  const daysInMonth = dayjs(
+                    `${newYear}-${month + 1}-01`
+                  ).daysInMonth();
+                  const isCurrentMonthAndYear =
+                    today.month() === month && today.year() === newYear;
+                  const dayExists = today.date() <= daysInMonth;
+
+                  setSelectedIndex(
+                    isCurrentMonthAndYear && dayExists ? today.date() - 1 : 0
+                  );
+                  setYear(newYear);
+                  hasScrolledInitially.current = false;
+                }}
+                className="p-2 hover:bg-[#e9d8c4] rounded-lg text-[#855B31] transition-colors"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <h2 className="text-xl font-semibold text-[#855B31]">{year}</h2>
+              <button
+                onClick={() => {
+                  const newYear = year + 1;
+
+                  // Prüfe, ob der heutige Tag im neuen Jahr existiert
+                  const daysInMonth = dayjs(
+                    `${newYear}-${month + 1}-01`
+                  ).daysInMonth();
+                  const isCurrentMonthAndYear =
+                    today.month() === month && today.year() === newYear;
+                  const dayExists = today.date() <= daysInMonth;
+
+                  setSelectedIndex(
+                    isCurrentMonthAndYear && dayExists ? today.date() - 1 : 0
+                  );
+                  setYear(newYear);
+                  hasScrolledInitially.current = false;
+                }}
+                className="p-2 hover:bg-[#e9d8c4] rounded-lg text-[#855B31] transition-colors"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              {monthShort.map((monthName, index) => (
+                <button
+                  key={monthName}
+                  onClick={() => handleMonthSelect(index)}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    month === index
+                      ? "bg-[#B48D62] text-white ring-2 ring-[#a67c52] font-semibold"
+                      : "bg-[#f1dec9] text-[#855B31] hover:bg-[#e9d8c4]"
+                  }`}
+                >
+                  {monthName}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,29 +1,34 @@
 import { supabase } from "../lib/supabaseClient";
 
+// Angepasster Typ inkl. date & time
 export type Todo = {
   id: string;
   title: string;
   is_done: boolean;
   created_at: string;
+  date?: string; // z. B. "2025-06-15"
+  time?: string; // z. B. "15:30:00"
 };
 
 class TodoService {
-  // Get all todo items
-  async getAll(): Promise<Todo[]> {
+
+  // Nur Todos für ein bestimmtes Datum (sortiert nach Zeit)
+  async getByDate(date: string): Promise<Todo[]> {
     const { data, error } = await supabase
       .from("todos")
       .select("*")
-      .order("created_at", { ascending: true });
+      .eq("date", date)
+      .order("time", { ascending: true });
 
     if (error) {
-      console.error("Fehler beim Laden:", error.message);
+      console.error("Fehler beim Laden nach Datum:", error.message);
       return [];
     }
 
     return data as Todo[];
   }
 
-  // Get a single todo item
+  // Einzelnes Todo laden
   async getSingle(id: string): Promise<Todo | null> {
     const { data, error } = await supabase
       .from("todos")
@@ -39,13 +44,18 @@ class TodoService {
     return data as Todo;
   }
 
-  // Add a new todo item
-  async add(title: string): Promise<void> {
-    const { error } = await supabase.from("todos").insert([{ title }]);
-    if (error) console.error("Fehler beim Einfügen:", error.message);
+  // Neues Todo erstellen (inkl. Datum + Uhrzeit)
+  async add(title: string, date?: string, time?: string): Promise<void> {
+    const { error } = await supabase
+      .from("todos")
+      .insert([{ title, date, time }]);
+
+    if (error) {
+      console.error("Fehler beim Einfügen:", error.message);
+    }
   }
 
-  // Update a todo item
+  // Todo aktualisieren
   async update(id: string, fields: Partial<Todo>): Promise<void> {
     const { error } = await supabase.from("todos").update(fields).eq("id", id);
 
@@ -54,20 +64,25 @@ class TodoService {
     }
   }
 
-  // Toggle the is_done field
+  // Status toggeln
   async toggle(id: string, is_done: boolean): Promise<void> {
     const { error } = await supabase
       .from("todos")
       .update({ is_done: !is_done })
       .eq("id", id);
 
-    if (error) console.error("Fehler beim Aktualisieren:", error.message);
+    if (error) {
+      console.error("Fehler beim Aktualisieren:", error.message);
+    }
   }
 
+  // Löschen
   async delete(id: string): Promise<void> {
     const { error } = await supabase.from("todos").delete().eq("id", id);
 
-    if (error) console.error("Fehler beim Löschen:", error.message);
+    if (error) {
+      console.error("Fehler beim Löschen:", error.message);
+    }
   }
 }
 

@@ -1,43 +1,88 @@
-import { LucidePlus, Check } from "lucide-react";
-import { useState } from "react";
+import { LucidePlus, Check, Clock } from "lucide-react";
+import { useEffect, useState, useRef, useMemo } from "react";
+import { todoService, type Todo } from "../services/todoService";
+import dayjs from "dayjs";
 
 export default function TodoPage() {
-  const [currentMonth, setCurrentMonth] = useState("Juni 2025");
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [todos, setTodos] = useState([
-    {
-      title: "Besteck aussortieren",
-      note: "Ordnungsprojekt: Besteckschublade",
-      done: false,
-    },
-    {
-      title: "Badregal putzen",
-      note: "Routine: Badezimmer",
-      done: true,
-    },
-    {
-      title: "Socken sortieren",
-      note: "Ordnungsprojekt: Kleiderschrank",
-      done: false,
-    },
-  ]);
+  // 📅 Heute + aktueller Monat
+  const now = dayjs();
+  const year = now.year();
+  const month = now.month(); // 0-basiert: Juni = 5
 
-  const days = [
-    { day: "FR", date: "21", done: 2, total: 6 },
-    { day: "SA", date: "22", done: 3, total: 5 },
-    { day: "SO", date: "23", done: 1, total: 4 },
-    { day: "MO", date: "24", done: 2, total: 5 },
-    { day: "DI", date: "25", done: 0, total: 3 },
-    { day: "MI", date: "26", done: 4, total: 5 },
-    { day: "DO", date: "27", done: 2, total: 2 },
-    { day: "FR", date: "28", done: 4, total: 8 },
-  ];
+  // 🧠 Tage dynamisch erzeugen
+  const dayNames = ["SO", "MO", "DI", "MI", "DO", "FR", "SA"];
+  const totalDays = dayjs(`${year}-${month + 1}-01`).daysInMonth();
 
-  const toggleDone = (index: number) => {
-    const updatedTodos = [...todos];
-    updatedTodos[index].done = !updatedTodos[index].done;
-    setTodos(updatedTodos);
-  };
+  // Basis-Tage ohne Statistiken
+  const baseDays = Array.from({ length: totalDays }, (_, i) => {
+    const date = dayjs(`${year}-${month + 1}-${i + 1}`);
+    return {
+      day: dayNames[date.day()],
+      date: date.format("DD"),
+      fullDate: date.format("YYYY-MM-DD"),
+      done: 0,
+      total: 0,
+    };
+  });
+
+  // 📍 Heute als vorausgewählten Tag setzen
+  const initialSelectedIndex = now.date() - 1;
+  const [selectedIndex, setSelectedIndex] = useState(initialSelectedIndex);
+  const [todos, setTodos] = useState<Todo[]>([]);
+  const [currentMonth, setCurrentMonth] = useState(now.format("MMMM YYYY")); // z. B. "Juni 2025"
+  const dayRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const hasScrolledInitially = useRef(false);
+
+  // Berechne Statistiken für jeden Tag
+  const days = useMemo(() => {
+    return baseDays.map((day) => {
+      const dayTodos = todos.filter((todo) => todo.date === day.fullDate);
+      return {
+        ...day,
+        total: dayTodos.length,
+        done: dayTodos.filter((todo) => todo.is_done).length,
+      };
+    });
+  }, [todos, baseDays]);
+
+  const currentDate = dayjs()
+    .year(year)
+    .month(month)
+    .date(Number(days[selectedIndex].date))
+    .format("YYYY-MM-DD");
+
+  // Todos für den Tag laden
+  useEffect(() => {
+    async function fetchTodos() {
+      const data = await todoService.getByDate(currentDate);
+      setTodos(data);
+    }
+
+    fetchTodos();
+  }, [currentDate]);
+
+  // Scroll zum ausgewählten Tag
+  useEffect(() => {
+    const selectedRef = dayRefs.current[selectedIndex];
+    if (selectedRef) {
+      // Initiales Scrollen ohne Animation
+      if (!hasScrolledInitially.current) {
+        selectedRef.scrollIntoView({ behavior: "auto", inline: "center" });
+        hasScrolledInitially.current = true;
+      } else {
+        // Interaktives Scrollen mit Animation
+        selectedRef.scrollIntoView({ behavior: "smooth", inline: "center" });
+      }
+    }
+  }, [selectedIndex]);
+
+  // Checkbox-Toggle
+  async function toggleDone(index: number) {
+    const todo = todos[index];
+    await todoService.toggle(todo.id, todo.is_done);
+    const updated = await todoService.getByDate(currentDate);
+    setTodos(updated);
+  }
 
   return (
     <div className="pt-[80px]">
@@ -67,6 +112,9 @@ export default function TodoPage() {
           return (
             <button
               key={index}
+              ref={(el) => {
+                dayRefs.current[index] = el;
+              }}
               onClick={() => setSelectedIndex(index)}
               className={`relative min-w-[60px] h-[90px] shrink-0 rounded-xl px-2 py-2 flex flex-col items-center justify-center
                 transition-colors duration-200
@@ -82,12 +130,11 @@ export default function TodoPage() {
               </span>
 
               {/* Fortschritts-Badge */}
-              <span
-                className={`absolute bottom-[-10px] px-2 py-[2px] text-[11px] rounded-full border shadow-sm bg-white
-                  text-[#8d8577]`}
-              >
-                {day.done}/{day.total}
-              </span>
+              {day.total > 0 && (
+                <span className="absolute bottom-[-10px] px-2 py-[2px] text-[11px] rounded-full border shadow-sm bg-white text-[#8d8577]">
+                  {day.done}/{day.total}
+                </span>
+              )}
             </button>
           );
         })}
@@ -97,26 +144,31 @@ export default function TodoPage() {
       <div className="mt-4 px-4 space-y-3 pb-12">
         {todos.map((todo, i) => (
           <div
-            key={i}
+            key={todo.id}
             className="bg-white rounded-xl px-4 py-3 shadow-sm flex items-start gap-3"
           >
-            {/* Interaktive Checkbox */}
+            {/* Checkbox */}
             <button
               onClick={() => toggleDone(i)}
               className={`w-5 h-5 mt-1 flex items-center justify-center rounded-full border-2 
                 ${
-                  todo.done
+                  todo.is_done
                     ? "bg-[#855B31] border-[#855B31] text-white"
                     : "border-[#855B31]"
                 }`}
             >
-              {todo.done && <Check size={14} strokeWidth={3} />}
+              {todo.is_done && <Check size={14} strokeWidth={3} />}
             </button>
 
-            {/* Text */}
+            {/* Titel + Uhrzeit */}
             <div>
               <div className="font-medium text-stone-800">{todo.title}</div>
-              <div className="text-sm text-stone-400">{todo.note}</div>
+              {todo.time && (
+                <div className="text-sm text-stone-500 flex items-center gap-1 mt-0.5">
+                  <Clock size={16} strokeWidth={2} />
+                  <span>{todo.time.slice(0, 5)}</span>
+                </div>
+              )}
             </div>
           </div>
         ))}

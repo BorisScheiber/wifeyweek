@@ -1,1 +1,32 @@
 @import "tailwindcss";
+
+/* ===== Tailwind v4 Theme Customization ===== */
+@theme {
+  --color-primary: #855B31;
+  --color-secondary: #f1dec9;
+  --color-bg: #faf4ef;
+  --font-body: "Quicksand", sans-serif;
+}
+
+@import url("https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600&display=swap");
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-bg);
+  font-family: var(--font-body);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Versteckt Scrollbalken in modernen Browsern */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE und Edge */
+  scrollbar-width: none;    /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;            /* Chrome, Safari */
+}
+

@@ -30,3 +30,19 @@ body {
   display: none;            /* Chrome, Safari */
 }
 
+.react-datepicker__header {
+  background-color: #faf4ef !important;
+}
+
+.react-datepicker {
+  font-size: 16px !important;
+}
+
+.todo-list {
+  padding-top: 12px;
+  padding-bottom: 24px;
+}
+
+.content-container {
+  height: calc(100vh - 80px);
+}

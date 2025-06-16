@@ -11,7 +11,6 @@ export type Todo = {
 };
 
 class TodoService {
-
   // Nur Todos für ein bestimmtes Datum (sortiert nach Zeit)
   async getByDate(date: string): Promise<Todo[]> {
     const { data, error } = await supabase
@@ -45,13 +44,24 @@ class TodoService {
   }
 
   // Neues Todo erstellen (inkl. Datum + Uhrzeit)
-  async add(title: string, date?: string, time?: string): Promise<void> {
-    const { error } = await supabase
-      .from("todos")
-      .insert([{ title, date, time }]);
+  async add(todo: {
+    title: string;
+    date: string;
+    time?: string | null;
+    is_done?: boolean;
+  }): Promise<void> {
+    const { error } = await supabase.from("todos").insert([
+      {
+        title: todo.title,
+        date: todo.date,
+        time: todo.time,
+        is_done: todo.is_done ?? false,
+      },
+    ]);
 
     if (error) {
       console.error("Fehler beim Einfügen:", error.message);
+      throw error; // Fehler weiterwerfen für bessere Fehlerbehandlung
     }
   }
 

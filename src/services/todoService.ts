@@ -7,8 +7,8 @@ export type Todo = {
   title: string;
   is_done: boolean;
   created_at: string;
-  date?: string; // z. B. "2025-06-15"
-  time?: string; // z. B. "15:30:00"
+  date?: string; // zB. "2025-06-15"
+  time?: string; // zB. "15:30:00"
 };
 
 class TodoService {

@@ -97,7 +97,9 @@ export default function CreateTodoPage() {
             <div className="relative w-full">
               <DatePicker
                 selected={dayjs(date).toDate()}
-                onChange={(d) => setDate(dayjs(d).format("YYYY-MM-DD"))}
+                onChange={(d: Date | null) =>
+                  setDate(dayjs(d).format("YYYY-MM-DD"))
+                }
                 wrapperClassName="w-full"
                 className="w-full pr-10 px-4 py-3 rounded-xl border-2 border-[#f1dec9] bg-white focus:border-[#B48D62] focus:outline-none transition-colors"
                 dateFormat="dd.MM.yyyy"
@@ -118,7 +120,9 @@ export default function CreateTodoPage() {
             <div className="relative w-full">
               <DatePicker
                 selected={time ? dayjs(`2000-01-01 ${time}`).toDate() : null}
-                onChange={(d) => setTime(d ? dayjs(d).format("HH:mm") : "")}
+                onChange={(d: Date | null) =>
+                  setTime(d ? dayjs(d).format("HH:mm") : "")
+                }
                 wrapperClassName="w-full"
                 className="w-full pr-10 px-4 py-3 rounded-xl border-2 border-[#f1dec9] bg-white focus:border-[#B48D62] focus:outline-none transition-colors"
                 showTimeSelect

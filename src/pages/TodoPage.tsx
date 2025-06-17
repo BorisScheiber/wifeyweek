@@ -87,12 +87,13 @@ export default function TodoPage() {
     .format("YYYY-MM-DD");
 
   useEffect(() => {
-    async function fetchTodos() {
-      const data = await todoService.getByDate(currentDate);
+    async function fetchTodosForMonth() {
+      const data = await todoService.getByMonth(year, month);
       setTodos(data);
     }
-    fetchTodos();
-  }, [currentDate]);
+
+    fetchTodosForMonth();
+  }, [year, month]);
 
   useEffect(() => {
     const selectedRef = dayRefs.current[selectedIndex];
@@ -109,7 +110,7 @@ export default function TodoPage() {
   async function toggleDone(index: number) {
     const todo = todos[index];
     await todoService.toggle(todo.id, todo.is_done);
-    const updated = await todoService.getByDate(currentDate);
+    const updated = await todoService.getByMonth(year, month);
     setTodos(updated);
   }
 
@@ -182,32 +183,34 @@ export default function TodoPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 space-y-3 todo-list">
-        {todos.map((todo, i) => (
-          <div
-            key={todo.id}
-            className="bg-white rounded-xl px-4 py-3 shadow-sm flex items-start gap-3"
-          >
-            <button
-              onClick={() => toggleDone(i)}
-              className={`w-5 h-5 mt-1 flex items-center justify-center rounded-full border-2 ${
-                todo.is_done
-                  ? "bg-[#855B31] border-[#855B31] text-white"
-                  : "border-[#855B31]"
-              }`}
+        {todos
+          .filter((todo) => todo.date === currentDate)
+          .map((todo, i) => (
+            <div
+              key={todo.id}
+              className="bg-white rounded-xl px-4 py-3 shadow-sm flex items-start gap-3"
             >
-              {todo.is_done && <Check size={14} strokeWidth={3} />}
-            </button>
-            <div>
-              <div className="font-medium text-stone-800">{todo.title}</div>
-              {todo.time && (
-                <div className="text-sm text-stone-500 flex items-center gap-1 mt-0.5">
-                  <Clock size={16} strokeWidth={2} />
-                  <span>{todo.time.slice(0, 5)}</span>
-                </div>
-              )}
+              <button
+                onClick={() => toggleDone(i)}
+                className={`w-5 h-5 mt-1 flex items-center justify-center rounded-full border-2 ${
+                  todo.is_done
+                    ? "bg-[#855B31] border-[#855B31] text-white"
+                    : "border-[#855B31]"
+                }`}
+              >
+                {todo.is_done && <Check size={14} strokeWidth={3} />}
+              </button>
+              <div>
+                <div className="font-medium text-stone-800">{todo.title}</div>
+                {todo.time && (
+                  <div className="text-sm text-stone-500 flex items-center gap-1 mt-0.5">
+                    <Clock size={16} strokeWidth={2} />
+                    <span>{todo.time.slice(0, 5)}</span>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
       </div>
 
       {showMonthModal && (
@@ -222,10 +225,15 @@ export default function TodoPage() {
               <button
                 onClick={() => {
                   const newYear = year - 1;
-                  const daysInMonth = dayjs(`${newYear}-${month + 1}-01`).daysInMonth();
-                  const isCurrentMonthAndYear = today.month() === month && today.year() === newYear;
+                  const daysInMonth = dayjs(
+                    `${newYear}-${month + 1}-01`
+                  ).daysInMonth();
+                  const isCurrentMonthAndYear =
+                    today.month() === month && today.year() === newYear;
                   const dayExists = today.date() <= daysInMonth;
-                  setSelectedIndex(isCurrentMonthAndYear && dayExists ? today.date() - 1 : 0);
+                  setSelectedIndex(
+                    isCurrentMonthAndYear && dayExists ? today.date() - 1 : 0
+                  );
                   setYear(newYear);
                   hasScrolledInitially.current = false;
                 }}
@@ -237,10 +245,15 @@ export default function TodoPage() {
               <button
                 onClick={() => {
                   const newYear = year + 1;
-                  const daysInMonth = dayjs(`${newYear}-${month + 1}-01`).daysInMonth();
-                  const isCurrentMonthAndYear = today.month() === month && today.year() === newYear;
+                  const daysInMonth = dayjs(
+                    `${newYear}-${month + 1}-01`
+                  ).daysInMonth();
+                  const isCurrentMonthAndYear =
+                    today.month() === month && today.year() === newYear;
                   const dayExists = today.date() <= daysInMonth;
-                  setSelectedIndex(isCurrentMonthAndYear && dayExists ? today.date() - 1 : 0);
+                  setSelectedIndex(
+                    isCurrentMonthAndYear && dayExists ? today.date() - 1 : 0
+                  );
                   setYear(newYear);
                   hasScrolledInitially.current = false;
                 }}

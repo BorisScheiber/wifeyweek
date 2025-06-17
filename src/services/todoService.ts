@@ -1,4 +1,5 @@
 import { supabase } from "../lib/supabaseClient";
+import dayjs from "dayjs";
 
 // Angepasster Typ inkl. date & time
 export type Todo = {
@@ -21,6 +22,25 @@ class TodoService {
 
     if (error) {
       console.error("Fehler beim Laden nach Datum:", error.message);
+      return [];
+    }
+
+    return data as Todo[];
+  }
+
+  // Alle Todos eines Monats laden (zB. für Tagesübersicht)
+  async getByMonth(year: number, month: number): Promise<Todo[]> {
+    const start = `${year}-${String(month + 1).padStart(2, "0")}-01`;
+    const end = dayjs(start).endOf("month").format("YYYY-MM-DD");
+
+    const { data, error } = await supabase
+      .from("todos")
+      .select("*")
+      .gte("date", start)
+      .lte("date", end);
+
+    if (error) {
+      console.error("Fehler beim Laden des Monats:", error.message);
       return [];
     }
 

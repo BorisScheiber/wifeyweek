@@ -142,14 +142,17 @@ export default function TodoPage() {
           >
             {monthLabels[month]} {year}
           </button>
-          <button
-            onClick={() => navigate("/add")}
-            className="text-white hover:text-[var(--color-plus-hover)] transition-colors"
-          >
-            <LucidePlus size={24} />
-          </button>
+          <div className="w-6"></div>
         </div>
       </header>
+
+      {/* Floating Action Button */}
+      <button
+        onClick={() => navigate("/add")}
+        className="fixed bottom-4 right-4 w-14 h-14 bg-gradient-to-br from-[var(--color-primary)] to-[#a67c52] text-white rounded-full shadow-lg z-40 flex items-center justify-center"
+      >
+        <LucidePlus size={24} />
+      </button>
 
       <div className="px-4 py-3 bg-[#faf4ef] shrink-0 overflow-x-auto whitespace-nowrap flex gap-3 scrollbar-hide">
         {days.map((day, index) => {
@@ -164,7 +167,7 @@ export default function TodoPage() {
               className={`relative min-w-[60px] h-[90px] shrink-0 rounded-xl px-2 py-2 flex flex-col items-center justify-center transition-colors duration-200 ${
                 isSelected
                   ? "bg-[#B48D62] text-white"
-                  : "bg-[#f1dec9] text-stone-800"
+                  : "bg-[#f1dec9] text-[#855B31]"
               }`}
             >
               <span className="text-xs">{day.day}</span>
@@ -200,10 +203,14 @@ export default function TodoPage() {
                 {todo.is_done && <Check size={14} strokeWidth={3} />}
               </button>
               <div>
-                <div className="font-medium text-stone-800">{todo.title}</div>
+                <div className="font-medium text-[#855B31]">{todo.title}</div>
                 {todo.time && (
-                  <div className="text-sm text-stone-500 flex items-center gap-1 mt-0.5">
-                    <Clock size={16} strokeWidth={2} />
+                  <div className="text-sm text-[#855B31] flex items-center gap-1 mt-0.5">
+                    <Clock
+                      size={16}
+                      strokeWidth={2}
+                      className="text-[#855B31]"
+                    />
                     <span>{todo.time.slice(0, 5)}</span>
                   </div>
                 )}

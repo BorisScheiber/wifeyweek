@@ -73,7 +73,10 @@ export default function CreateTodoPage() {
             <label
               htmlFor="title"
               className="block text-sm font-medium text-[#855B31] mb-2"
-              style={{ fontFamily: '"Quicksand", sans-serif' }}
+              style={{
+                fontFamily: '"Quicksand", sans-serif',
+                fontSize: "16px",
+              }}
             >
               Titel *
             </label>
@@ -107,6 +110,7 @@ export default function CreateTodoPage() {
             <label
               htmlFor="date"
               className="block text-sm font-medium text-[#855B31] mb-2"
+              style={{ fontSize: "16px" }}
             >
               Datum *
             </label>
@@ -212,6 +216,7 @@ export default function CreateTodoPage() {
             <label
               htmlFor="time"
               className="block text-sm font-medium text-[#855B31] mb-2"
+              style={{ fontSize: "16px" }}
             >
               Uhrzeit (optional)
             </label>

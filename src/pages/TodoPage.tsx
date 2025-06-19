@@ -107,9 +107,8 @@ export default function TodoPage() {
     }
   }, [selectedIndex]);
 
-  async function toggleDone(index: number) {
-    const todo = todos[index];
-    await todoService.toggle(todo.id, todo.is_done);
+  async function toggleDone(id: string, is_done: boolean) {
+    await todoService.toggle(id, is_done);
     const updated = await todoService.getByMonth(year, month);
     setTodos(updated);
   }
@@ -185,13 +184,13 @@ export default function TodoPage() {
       <div className="flex-1 overflow-y-auto px-4 space-y-3 todo-list">
         {todos
           .filter((todo) => todo.date === currentDate)
-          .map((todo, i) => (
+          .map((todo) => (
             <div
               key={todo.id}
               className="bg-white rounded-xl px-4 py-3 shadow-sm flex items-start gap-3"
             >
               <button
-                onClick={() => toggleDone(i)}
+                onClick={() => toggleDone(todo.id, todo.is_done)}
                 className={`w-5 h-5 mt-1 flex items-center justify-center rounded-full border-2 ${
                   todo.is_done
                     ? "bg-[#855B31] border-[#855B31] text-white"

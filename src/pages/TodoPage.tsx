@@ -4,6 +4,7 @@ import {
   Clock,
   ChevronLeft,
   ChevronRight,
+  Trash2,
 } from "lucide-react";
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
@@ -113,6 +114,12 @@ export default function TodoPage() {
     setTodos(updated);
   }
 
+  async function deleteTodo(id: string) {
+    await todoService.delete(id);
+    const updated = await todoService.getByMonth(year, month);
+    setTodos(updated);
+  }
+
   const handleMonthSelect = (index: number) => {
     const today = dayjs();
     const isCurrentMonth = today.year() === year && today.month() === index;
@@ -202,7 +209,7 @@ export default function TodoPage() {
               >
                 {todo.is_done && <Check size={14} strokeWidth={3} />}
               </button>
-              <div>
+              <div className="flex-1">
                 <div className="font-medium text-[#855B31]">{todo.title}</div>
                 {todo.time && (
                   <div className="text-sm text-[#855B31] flex items-center gap-1 mt-0.5">
@@ -215,6 +222,13 @@ export default function TodoPage() {
                   </div>
                 )}
               </div>
+              <button
+                onClick={() => deleteTodo(todo.id)}
+                className="w-6 h-6 mt-1 flex items-center justify-center text-[#855B31]"
+                aria-label={`Aufgabe "${todo.title}" löschen`}
+              >
+                <Trash2 size={20} strokeWidth={2} />
+              </button>
             </div>
           ))}
       </div>

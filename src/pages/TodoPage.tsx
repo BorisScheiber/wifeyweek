@@ -197,6 +197,17 @@ export default function TodoPage() {
       <div className="flex-1 overflow-y-auto px-4 space-y-3 todo-list">
         {todos
           .filter((todo) => todo.date === currentDate)
+          .sort((a, b) => {
+            // Wenn beide Todos eine Zeit haben, sortiere nach Zeit
+            if (a.time && b.time) {
+              return a.time.localeCompare(b.time);
+            }
+            // Todos ohne Zeit kommen nach Todos mit Zeit
+            if (a.time && !b.time) return -1;
+            if (!a.time && b.time) return 1;
+            // Beide ohne Zeit - behalte ursprüngliche Reihenfolge
+            return 0;
+          })
           .map((todo) => (
             <SwipeableItem key={todo.id} onDelete={() => deleteTodo(todo.id)}>
               <div className="flex items-start gap-3">

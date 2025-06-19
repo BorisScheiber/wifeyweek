@@ -134,7 +134,7 @@ export default function TodoPage() {
       className="mt-[80px] flex flex-col content-container"
       style={{ height: "calc(100vh - 80px)" }}
     >
-      <header className="fixed top-0 left-0 right-0 h-[80px] bg-[var(--color-primary)] text-white shadow-md z-50">
+      <header className="fixed top-0 left-0 right-0 h-[80px] bg-gradient-to-br from-[var(--color-primary)] to-[#a67c52] text-white shadow-md z-50">
         <div className="h-full px-4 flex items-center justify-between">
           <div className="w-6"></div>
           <button

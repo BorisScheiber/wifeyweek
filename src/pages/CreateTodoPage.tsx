@@ -2,13 +2,19 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { todoService } from "../services/todoService";
 import dayjs from "dayjs";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
-import { CalendarDays, Clock, XCircle } from "lucide-react";
 import { registerLocale } from "react-datepicker";
 import { de } from "date-fns/locale/de";
+import {
+  LocalizationProvider,
+  MobileTimePicker,
+  MobileDatePicker,
+} from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 
-// Registriere deutsche Lokalisierung
+// Dayjs Locale Import - WICHTIG!
+import "dayjs/locale/de";
+
+// Registriere deutsche Lokalisierung für react-datepicker
 registerLocale("de", de);
 
 export default function CreateTodoPage() {
@@ -18,6 +24,9 @@ export default function CreateTodoPage() {
   const [date, setDate] = useState(dayjs().format("YYYY-MM-DD"));
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Aktiviere deutsche Lokalisierung für dayjs
+  dayjs.locale("de");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,6 +73,7 @@ export default function CreateTodoPage() {
             <label
               htmlFor="title"
               className="block text-sm font-medium text-[#855B31] mb-2"
+              style={{ fontFamily: '"Quicksand", sans-serif' }}
             >
               Titel *
             </label>
@@ -75,18 +85,24 @@ export default function CreateTodoPage() {
                 setTitle(e.target.value);
                 if (error) setError("");
               }}
-              className={`w-full px-4 py-3 rounded-xl border-2 transition-colors ${
+              className={`w-full px-4 rounded-xl border-2 transition-colors ${
                 error
                   ? "border-red-400 bg-red-50"
                   : "border-[#f1dec9] bg-white focus:border-[#B48D62] focus:outline-none"
               }`}
+              style={{
+                height: "55px", // Gleiche Höhe wie Picker
+                color: "#855B31", // Gleiche Textfarbe
+                fontSize: "16px", // Gleiche Schriftgröße
+                fontFamily: '"Quicksand", sans-serif', // Gleiche Schriftart
+              }}
               placeholder="Was gibts zu tun babe? (:"
               disabled={isLoading}
             />
             {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
           </div>
 
-          {/* Datum-Eingabe mit Icon */}
+          {/* Datum-Eingabe mit MUI DatePicker */}
           <div>
             <label
               htmlFor="date"
@@ -94,22 +110,104 @@ export default function CreateTodoPage() {
             >
               Datum *
             </label>
-            <div className="relative w-full">
-              <DatePicker
-                selected={dayjs(date).toDate()}
-                onChange={(d: Date | null) =>
-                  setDate(dayjs(d).format("YYYY-MM-DD"))
+            <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="de">
+              <MobileDatePicker
+                label=""
+                value={dayjs(date)}
+                onChange={(newValue: dayjs.Dayjs | null) =>
+                  setDate(
+                    newValue
+                      ? dayjs(newValue).format("YYYY-MM-DD")
+                      : dayjs().format("YYYY-MM-DD")
+                  )
                 }
-                wrapperClassName="w-full"
-                className="w-full pr-10 px-4 py-3 rounded-xl border-2 border-[#f1dec9] bg-white focus:border-[#B48D62] focus:outline-none transition-colors"
-                dateFormat="dd.MM.yyyy"
+                format="DD.MM.YYYY"
                 disabled={isLoading}
+                openTo="day"
+                sx={{
+                  width: "100%",
+                  // Hintergrundfarbe auf dem Root-Element setzen
+                  "& .MuiPickersInputBase-root": {
+                    backgroundColor: "#ffffff !important",
+                    borderRadius: "0.75rem",
+                    padding: "0 16px",
+                  },
+                  // Border ohne Background
+                  "& .MuiPickersOutlinedInput-notchedOutline": {
+                    borderColor: "#f1dec9 !important",
+                    borderWidth: "2px !important",
+                  },
+                  // Focus State
+                  "& .MuiPickersInputBase-root.Mui-focused .MuiPickersOutlinedInput-notchedOutline":
+                    {
+                      borderColor: "#B48D62 !important",
+                      borderWidth: "2px !important",
+                    },
+                  "& .MuiInputLabel-root": {
+                    color: "#855B31",
+                    fontWeight: "500",
+                    "&.Mui-focused": {
+                      color: "#B48D62",
+                      fontWeight: "500",
+                    },
+                  },
+                  "& .MuiPickersSectionList-root": {
+                    padding: "16px 0 !important",
+                  },
+                  // Input Text Styling
+                  "& .MuiPickersInputBase-input": {
+                    color: "#855B31",
+                    padding: "12px 16px",
+                  },
+                  // Section Content (die DD.MM.YYYY Bereiche)
+                  "& .MuiPickersInputBase-sectionContent": {
+                    color: "#855B31",
+                    fontFamily: '"Quicksand", sans-serif !important',
+                    fontSize: "16px !important",
+                  },
+                  // Icon Button explizit sichtbar machen
+                  "& .MuiInputAdornment-root": {
+                    position: "relative",
+                    zIndex: 1,
+                    margin: "0 0 0 0",
+                  },
+                  "& .MuiButtonBase-root": {
+                    margin: "0 0 0 0",
+                  },
+                  "& .MuiIconButton-root": {
+                    color: "#855B31",
+                    padding: "0 0 0 0",
+                    "&:hover": {
+                      backgroundColor: "transparent !important",
+                    },
+                    "&:active": {
+                      backgroundColor: "transparent !important",
+                    },
+                    "&.Mui-focusVisible": {
+                      backgroundColor: "transparent !important",
+                    },
+                    "& .MuiTouchRipple-root": {
+                      display: "none !important",
+                    },
+                  },
+                  "& .MuiSvgIcon-root": {
+                    color: "#855B31 !important",
+                    width: "24px !important",
+                    height: "24px !important",
+                  },
+                }}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    variant: "outlined",
+                    size: "medium",
+                  },
+                }}
               />
-              <CalendarDays className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#855B31] pointer-events-none" />
-            </div>
+            </LocalizationProvider>
           </div>
 
-          {/* Uhrzeit-Eingabe mit Icon */}
+          {/* MUI TimePicker mit Custom Styling */}
           <div>
             <label
               htmlFor="time"
@@ -117,33 +215,103 @@ export default function CreateTodoPage() {
             >
               Uhrzeit (optional)
             </label>
-            <div className="relative w-full">
-              <DatePicker
-                selected={time ? dayjs(`2000-01-01 ${time}`).toDate() : null}
-                onChange={(d: Date | null) =>
-                  setTime(d ? dayjs(d).format("HH:mm") : "")
+            <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="de">
+              <MobileTimePicker
+                localeText={{
+                  fieldHoursPlaceholder: () => "Std",
+                  fieldMinutesPlaceholder: () => "Min",
+                }}
+                label=""
+                value={time ? dayjs(`2000-01-01T${time}`) : null}
+                onChange={(newValue: dayjs.Dayjs | null) =>
+                  setTime(newValue ? dayjs(newValue).format("HH:mm") : "")
                 }
-                wrapperClassName="w-full"
-                className="w-full pr-10 px-4 py-3 rounded-xl border-2 border-[#f1dec9] bg-white focus:border-[#B48D62] focus:outline-none transition-colors"
-                showTimeSelect
-                showTimeSelectOnly
-                timeIntervals={15}
-                timeCaption="Uhrzeit"
-                dateFormat="HH:mm"
-                placeholderText="Uhrzeit auswählen"
+                ampm={false}
+                minutesStep={5}
                 disabled={isLoading}
-                locale="de"
-                timeFormat="HH:mm"
+                openTo="hours"
+                sx={{
+                  width: "100%",
+                  // Hintergrundfarbe auf dem Root-Element setzen
+                  "& .MuiPickersInputBase-root": {
+                    backgroundColor: "#ffffff !important",
+                    borderRadius: "0.75rem",
+                    padding: "0 16px",
+                  },
+                  // Border ohne Background
+                  "& .MuiPickersOutlinedInput-notchedOutline": {
+                    borderColor: "#f1dec9 !important",
+                    borderWidth: "2px !important",
+                    // backgroundColor hier ENTFERNEN!
+                  },
+                  // Focus State
+                  "& .MuiPickersInputBase-root.Mui-focused .MuiPickersOutlinedInput-notchedOutline":
+                    {
+                      borderColor: "#B48D62 !important",
+                      borderWidth: "2px !important",
+                    },
+                  "& .MuiInputLabel-root": {
+                    color: "#855B31",
+                    fontWeight: "500",
+                    "&.Mui-focused": {
+                      color: "#B48D62",
+                      fontWeight: "500",
+                    },
+                  },
+                  "& .MuiPickersSectionList-root": {
+                    padding: "16px 0 !important", // py-3 px-4
+                  },
+                  // Input Text Styling
+                  "& .MuiPickersInputBase-input": {
+                    color: "#855B31",
+                    padding: "12px 16px",
+                  },
+                  // Section Content (die hh:mm Bereiche)
+                  "& .MuiPickersInputBase-sectionContent": {
+                    color: "#855B31",
+                    fontFamily: '"Quicksand", sans-serif !important',
+                    fontSize: "16px !important",
+                  },
+                  // Icon Button explizit sichtbar machen
+                  "& .MuiInputAdornment-root": {
+                    position: "relative",
+                    zIndex: 1,
+                    margin: "0 0 0 0",
+                  },
+                  "& .MuiButtonBase-root": {
+                    margin: "0 0 0 0",
+                  },
+                  "& .MuiIconButton-root": {
+                    color: "#855B31",
+                    padding: "0 0 0 0",
+                    "&:hover": {
+                      backgroundColor: "transparent !important",
+                    },
+                    "&:active": {
+                      backgroundColor: "transparent !important",
+                    },
+                    "&.Mui-focusVisible": {
+                      backgroundColor: "transparent !important",
+                    },
+                    "& .MuiTouchRipple-root": {
+                      display: "none !important",
+                    },
+                  },
+                  "& .MuiSvgIcon-root": {
+                    color: "#855B31 !important",
+                    width: "24px !important",
+                    height: "24px !important",
+                  },
+                }}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    variant: "outlined",
+                    size: "medium",
+                  },
+                }}
               />
-              {time ? (
-                <XCircle
-                  className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#855B31] cursor-pointer hover:text-[#B48D62] transition-colors"
-                  onClick={() => setTime("")}
-                />
-              ) : (
-                <Clock className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#855B31] pointer-events-none" />
-              )}
-            </div>
+            </LocalizationProvider>
           </div>
 
           {/* Buttons */}

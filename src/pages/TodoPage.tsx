@@ -4,12 +4,12 @@ import {
   Clock,
   ChevronLeft,
   ChevronRight,
-  Trash2,
 } from "lucide-react";
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { todoService, type Todo } from "../services/todoService";
 import dayjs from "dayjs";
+import SwipeableItem from "../components/SwipeableItem";
 
 export default function TodoPage() {
   const navigate = useNavigate();
@@ -195,41 +195,37 @@ export default function TodoPage() {
         {todos
           .filter((todo) => todo.date === currentDate)
           .map((todo) => (
-            <div
+            <SwipeableItem
               key={todo.id}
-              className="bg-white rounded-xl px-4 py-3 shadow-sm flex items-start gap-3"
+              onDelete={() => deleteTodo(todo.id)}
+              itemId={todo.id}
             >
-              <button
-                onClick={() => toggleDone(todo.id, todo.is_done)}
-                className={`w-5 h-5 mt-1 flex items-center justify-center rounded-full border-2 ${
-                  todo.is_done
-                    ? "bg-[#855B31] border-[#855B31] text-white"
-                    : "border-[#855B31]"
-                }`}
-              >
-                {todo.is_done && <Check size={14} strokeWidth={3} />}
-              </button>
-              <div className="flex-1">
-                <div className="font-medium text-[#855B31]">{todo.title}</div>
-                {todo.time && (
-                  <div className="text-sm text-[#855B31] flex items-center gap-1 mt-0.5">
-                    <Clock
-                      size={16}
-                      strokeWidth={2}
-                      className="text-[#855B31]"
-                    />
-                    <span>{todo.time.slice(0, 5)}</span>
-                  </div>
-                )}
+              <div className="bg-white rounded-xl px-4 py-3 shadow-sm flex items-start gap-3">
+                <button
+                  onClick={() => toggleDone(todo.id, todo.is_done)}
+                  className={`w-5 h-5 mt-1 flex items-center justify-center rounded-full border-2 ${
+                    todo.is_done
+                      ? "bg-[#855B31] border-[#855B31] text-white"
+                      : "border-[#855B31]"
+                  }`}
+                >
+                  {todo.is_done && <Check size={14} strokeWidth={3} />}
+                </button>
+                <div className="flex-1">
+                  <div className="font-medium text-[#855B31]">{todo.title}</div>
+                  {todo.time && (
+                    <div className="text-sm text-[#855B31] flex items-center gap-1 mt-0.5">
+                      <Clock
+                        size={16}
+                        strokeWidth={2}
+                        className="text-[#855B31]"
+                      />
+                      <span>{todo.time.slice(0, 5)}</span>
+                    </div>
+                  )}
+                </div>
               </div>
-              <button
-                onClick={() => deleteTodo(todo.id)}
-                className="w-6 h-6 mt-1 flex items-center justify-center text-[#855B31]"
-                aria-label={`Aufgabe "${todo.title}" löschen`}
-              >
-                <Trash2 size={20} strokeWidth={2} />
-              </button>
-            </div>
+            </SwipeableItem>
           ))}
       </div>
 

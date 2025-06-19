@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { Trash2 } from "lucide-react";
 
 interface SwipeableItemProps {
   children: React.ReactNode;
@@ -103,12 +104,12 @@ export default function SwipeableItem({
       className="relative overflow-hidden rounded-xl bg-white shadow-sm"
     >
       {/* Delete Button */}
-      <div className="absolute right-0 top-0 h-full w-20 bg-red-500 flex items-center justify-center delete-button">
+      <div className="absolute right-0 top-0 h-full w-20 🔥 bg-[#c85a54] flex items-center justify-center delete-button">
         <button
           onClick={handleDelete}
           className="text-white font-medium text-sm px-3 py-2 h-full w-full flex items-center justify-center rounded-xl"
         >
-          Löschen
+          <Trash2 size={20} className="text-white" />
         </button>
       </div>
 

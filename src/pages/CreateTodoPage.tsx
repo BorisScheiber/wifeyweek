@@ -10,6 +10,7 @@ import {
   MobileDatePicker,
 } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { LucideX, LucideCheck } from "lucide-react";
 
 // Dayjs Locale Import - WICHTIG!
 import "dayjs/locale/de";
@@ -64,10 +65,10 @@ export default function CreateTodoPage() {
     <div className="min-h-screen bg-[#faf4ef] px-4 py-8">
       <div className="max-w-md mx-auto">
         <h1 className="text-3xl  text-[#855B31] mb-8 text-center indie-flower">
-        Aufgabe hinzufügen
+          Aufgabe hinzufügen
         </h1>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6" id="todo-form">
           {/* Titel-Eingabe */}
           <div>
             <label
@@ -314,30 +315,96 @@ export default function CreateTodoPage() {
                     variant: "outlined",
                     size: "medium",
                   },
+                  // HIER ist das Clock-Styling richtig platziert:
+                  mobilePaper: {
+                    sx: {
+                      "& .MuiClock-clock": {
+                        backgroundColor: "#f1dec9 !important",
+                      },
+                      // Clock Pin (der Mittelpunkt der Uhr)
+                      "& .MuiClock-pin": {
+                        backgroundColor: "#855B31 !important",
+                      },
+                      // Clock Pointer (der Zeiger)
+                      "& .MuiClockPointer-root": {
+                        backgroundColor: "#855B31 !important",
+                      },
+                      // Zeiger-Thumb (der Kreis am Ende des Zeigers)
+                      "& .MuiClockPointer-thumb": {
+                        backgroundColor: "#855B31 !important",
+                        border: "16px solid #855B31 !important",
+                      },
+                      "& .MuiButtonBase-root.MuiButton-root": {
+                        color: "#855B31 !important",
+                        fontFamily: '"Quicksand", sans-serif !important',
+                        fontWeight: "600 !important",
+                      },
+                      "& .MuiPickersToolbar-content .MuiButtonBase-root.MuiButton-root":
+                        {
+                          color: "#855B31 !important",
+
+                          "& .MuiTypography-root.MuiPickersToolbarText-root": {
+                            color: "#855B31 !important",
+                            fontFamily: '"Quicksand", sans-serif !important',
+                          },
+
+                          "&:hover": {
+                            backgroundColor: "#f1dec9 !important",
+                          },
+                        },
+                      "& .MuiTimePickerToolbar-separator": {
+                        color: "#855B31 !important",
+                        fontFamily: '"Quicksand", sans-serif !important',
+                      },
+                      "& .MuiClockNumber-root": {
+                        color: "#855B31 !important",
+                        fontFamily: '"Quicksand", sans-serif !important',
+                        fontWeight: "500 !important",
+                      },
+                      "& .MuiClockNumber-root.Mui-selected": {
+                        color: "#FFFFFF !important",
+                      },
+                      "& .MuiPickersToolbar-title": {
+                        color: "#855B31 !important",
+                        fontFamily: '"Quicksand", sans-serif !important',
+                      },
+                    },
+                  },
                 }}
               />
             </LocalizationProvider>
           </div>
-
-          {/* Buttons */}
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={handleCancel}
-              disabled={isLoading}
-              className="flex-1 px-6 py-3 rounded-xl border-2 border-[#f1dec9] bg-white text-[#855B31] font-medium hover:bg-[#f1dec9] transition-colors disabled:opacity-50"
-            >
-              Abbrechen
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading || !title.trim()}
-              className="flex-1 px-6 py-3 rounded-xl bg-[#B48D62] text-white font-medium hover:bg-[#a67c52] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? "Speichern..." : "Hinzufügen"}
-            </button>
-          </div>
         </form>
+
+        {/* Floating Action Buttons */}
+        <button
+          type="button"
+          onClick={handleCancel}
+          disabled={isLoading}
+          className="fixed bottom-4 left-4 w-14 h-14 bg-[#fdf6ef] border-2 border-[#855B31] text-[#855B31] rounded-full shadow-md z-40 flex items-center justify-center hover:bg-[#f1dec9] transition-all disabled:opacity-50"
+        >
+          <LucideX size={24} />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            if (!isLoading && title.trim()) {
+              const form = document.getElementById(
+                "todo-form"
+              ) as HTMLFormElement;
+              if (form) {
+                form.dispatchEvent(
+                  new Event("submit", { bubbles: true, cancelable: true })
+                );
+              }
+            }
+          }}
+          disabled={isLoading || !title.trim()}
+          className="fixed bottom-4 right-4 w-14 h-14 bg-gradient-to-br from-[var(--color-primary)] to-[#a67c52] text-white rounded-full shadow-lg z-40 flex items-center justify-center hover:from-[#a67c52] hover:to-[#9b6f47] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <LucideCheck size={24} />
+        </button>
       </div>
     </div>
   );

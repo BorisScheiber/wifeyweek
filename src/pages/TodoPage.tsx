@@ -143,17 +143,94 @@ export default function TodoPage() {
       className="mt-[80px] flex flex-col content-container"
       style={{ height: "calc(100vh - 80px)" }}
     >
-      <header className="fixed top-0 left-0 right-0 h-[80px]  text-white shadow-md z-50">
-        <div className="h-full px-4 flex items-center justify-between">
+      <header className="fixed top-0 left-0 right-0 h-[80px]  text-white z-50">
+        <div className="h-full px-4 flex items-center justify-between z-50">
           <div className="w-6"></div>
           <button
             onClick={() => setShowMonthModal(true)}
-            className="text-lg font-semibold tracking-wide hover:text-[#f1dec9] transition-colors"
+            className="text-[22px] font-bold tracking-wide hover:text-[#f1dec9] transition-colors indie-flower"
           >
             {monthLabels[month]} {year}
           </button>
           <div className="w-6"></div>
         </div>
+
+        {/* <svg
+          transform=""
+          className="waves"
+          xmlns="http://www.w3.org/2000/svg"
+          xmlnsXlink="http://www.w3.org/1999/xlink"
+          viewBox="0 24 150 28"
+          preserveAspectRatio="none"
+          shapeRendering="auto"
+        >
+          <defs>
+            <path
+              id="gentle-wave"
+              d="M-160 44c30 0 58-18 88-18s 58 18 88 18
+           58-18 88-18 58 18 88 18 v44h-352z"
+            />
+          </defs>
+          <g className="parallax">
+            <use
+              xlinkHref="#gentle-wave"
+              x="48"
+              y="0"
+              fill="rgba(133, 91, 49, 1)"
+            />
+            <use
+              xlinkHref="#gentle-wave"
+              x="48"
+              y="3"
+              fill="rgba(179, 140, 97, 1)"
+            />
+            <use
+              xlinkHref="#gentle-wave"
+              x="48"
+              y="5"
+              fill="rgba(241, 222, 201, 0.2)"
+            />
+            <use
+              xlinkHref="#gentle-wave"
+              x="48"
+              y="7"
+              fill="rgba(241, 222, 201, 0.1)"
+            />
+          </g>
+        </svg> */}
+
+
+{/* 
+<svg
+  className="waves"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlnsXlink="http://www.w3.org/1999/xlink"
+  viewBox="0 24 150 28"
+  preserveAspectRatio="none"
+  shapeRendering="auto"
+>
+  <defs>
+    <path
+      id="gentle-wave"
+      d="M-160 44c30 0 58-18 88-18s 58 18 88 18
+         58-18 88-18 58 18 88 18 v44h-352z"
+    />
+  </defs>
+  <g className="parallax">
+    <use xlinkHref="#gentle-wave" x="48" y="0" fill="rgba(133, 91, 49, 1)" />
+    <use xlinkHref="#gentle-wave" x="48" y="3" fill="rgba(179, 140, 97, 1)" />
+    <use
+      xlinkHref="#gentle-wave"
+      x="48"
+      y="5"
+      fill="rgba(241, 222, 201, 0.6)"
+    />
+  </g>
+</svg> */}
+
+
+
+        
       </header>
 
       {/* Floating Action Button */}

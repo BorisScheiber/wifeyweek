@@ -10,6 +10,12 @@
 
 @import url("https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600&display=swap");
 
+@import url('https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap');
+
+@import url('https://fonts.googleapis.com/css2?family=Alice&display=swap');
+
+
+
 html {
   scroll-behavior: smooth;
 }
@@ -52,10 +58,91 @@ body {
   border-radius: 0 16px 16px 0;
 }
 
-header {
-  background: #855B31;
-background: linear-gradient(180deg, rgba(133, 91, 49, 1) 80%, rgba(179, 140, 97, 1) 97%, rgba(241, 222, 201, 1) 100%)
+.indie-flower {
+  font-family: "Alice", serif;
 }
+
+
+
+
+
+header {
+  /* background-color: transparent; */
+  background: #855B31;
+/* background: linear-gradient(180deg, rgba(133, 91, 49, 1) 80%, rgba(179, 140, 97, 1) 97%, rgba(241, 222, 201, 1) 100%) */
+}
+
+
+/* 
+
+.waves {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 20px;
+}
+
+.parallax > use {
+  animation: move-forever 25s cubic-bezier(0.55, 0.5, 0.45, 0.5) infinite;
+}
+.parallax > use:nth-child(1) {
+  animation-delay: -2s;
+  animation-duration: 7s;
+}
+.parallax > use:nth-child(2) {
+  animation-delay: -3s;
+  animation-duration: 10s;
+}
+.parallax > use:nth-child(3) {
+  animation-delay: -4s;
+  animation-duration: 13s;
+}
+.parallax > use:nth-child(4) {
+  animation-delay: -5s;
+  animation-duration: 20s;
+}
+
+@keyframes move-forever {
+  0% {
+    transform: translate3d(-90px, 0, 0);
+  }
+  100% {
+    transform: translate3d(85px, 0, 0);
+  }
+} */
+
+
+.waves {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 15px;
+  pointer-events: none; 
+}
+
+.parallax > use {
+  animation: move-forever 20s linear infinite;
+  will-change: transform;
+}
+.parallax > use:nth-child(1) {
+  animation-delay: -2s;
+}
+.parallax > use:nth-child(2) {
+  animation-delay: -4s;
+}
+.parallax > use:nth-child(3) {
+  animation-delay: -6s;
+}
+
+@keyframes move-forever {
+  0% {
+    transform: translateX(-90px);
+  }
+  100% {
+    transform: translateX(85px);
+  }
+}
+
 
 
 

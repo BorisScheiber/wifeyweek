@@ -63,8 +63,8 @@ export default function CreateTodoPage() {
   return (
     <div className="min-h-screen bg-[#faf4ef] px-4 py-8">
       <div className="max-w-md mx-auto">
-        <h1 className="text-2xl font-semibold text-[#855B31] mb-8 text-center">
-          Neue Aufgabe hinzufügen
+        <h1 className="text-3xl  text-[#855B31] mb-8 text-center indie-flower">
+        Aufgabe hinzufügen
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">

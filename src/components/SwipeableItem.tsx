@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Trash2 } from "lucide-react";
 
 interface SwipeableItemProps {
@@ -16,18 +16,19 @@ export default function SwipeableItem({
   const touchStartY = useRef(0);
   const isDragging = useRef(false);
   const swipeableRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const SWIPE_THRESHOLD = 50;
   const MAX_SWIPE_DISTANCE = 80;
 
-  const handleTouchStart = (e: React.TouchEvent) => {
+  const handleTouchStart = (e: TouchEvent) => {
     const touch = e.touches[0];
     touchStartX.current = touch.clientX;
     touchStartY.current = touch.clientY;
     isDragging.current = false;
   };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
+  const handleTouchMove = (e: TouchEvent) => {
     if (!touchStartX.current) return;
 
     const touch = e.touches[0];
@@ -47,7 +48,7 @@ export default function SwipeableItem({
     setTranslateX(newTranslateX);
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = useCallback(() => {
     if (!isDragging.current) return;
 
     if (translateX < -SWIPE_THRESHOLD) {
@@ -60,7 +61,7 @@ export default function SwipeableItem({
     touchStartX.current = 0;
     touchStartY.current = 0;
     isDragging.current = false;
-  };
+  }, [translateX]);
 
   const handleContentClick = (e: React.MouseEvent) => {
     // Wenn das Item bereits geswiped ist, dann zurück swipen
@@ -81,6 +82,28 @@ export default function SwipeableItem({
     onDelete();
     resetPosition();
   };
+
+  // Touch-Events manuell registrieren (non-passive)
+  useEffect(() => {
+    const contentElement = contentRef.current;
+    if (!contentElement) return;
+
+    contentElement.addEventListener("touchstart", handleTouchStart, {
+      passive: false,
+    });
+    contentElement.addEventListener("touchmove", handleTouchMove, {
+      passive: false,
+    });
+    contentElement.addEventListener("touchend", handleTouchEnd, {
+      passive: false,
+    });
+
+    return () => {
+      contentElement.removeEventListener("touchstart", handleTouchStart);
+      contentElement.removeEventListener("touchmove", handleTouchMove);
+      contentElement.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [translateX, handleTouchEnd]);
 
   // Reset wenn woanders getippt wird
   useEffect(() => {
@@ -115,15 +138,13 @@ export default function SwipeableItem({
 
       {/* Content */}
       <div
+        ref={contentRef}
         className="relative bg-white rounded-xl px-4 py-3"
         style={{
           transform: `translateX(${translateX}px)`,
           transition: isDragging.current ? "none" : "transform 0.3s ease-out",
           touchAction: "pan-y",
         }}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
         onClick={handleContentClick}
       >
         {children}

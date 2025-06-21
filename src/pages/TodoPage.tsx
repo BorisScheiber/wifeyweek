@@ -89,8 +89,19 @@ export default function TodoPage() {
 
   useEffect(() => {
     async function fetchTodosForMonth() {
-      const data = await todoService.getByMonth(year, month);
-      setTodos(data);
+      try {
+        // Zuerst wiederkehrende Aufgaben für diesen Monat generieren
+        await todoService.generateRecurringTodosForMonth(year, month);
+
+        // Dann alle Todos für den Monat laden
+        const data = await todoService.getByMonth(year, month);
+        setTodos(data);
+      } catch (error) {
+        console.error("Fehler beim Laden/Generieren der Todos:", error);
+        // Fallback: Lade zumindest die vorhandenen Todos
+        const data = await todoService.getByMonth(year, month);
+        setTodos(data);
+      }
     }
 
     fetchTodosForMonth();
@@ -154,9 +165,7 @@ export default function TodoPage() {
           </button>
           <div className="w-6"></div>
         </div>
-
-        {/* <svg
-          transform=""
+        <svg
           className="waves"
           xmlns="http://www.w3.org/2000/svg"
           xmlnsXlink="http://www.w3.org/1999/xlink"
@@ -168,69 +177,30 @@ export default function TodoPage() {
             <path
               id="gentle-wave"
               d="M-160 44c30 0 58-18 88-18s 58 18 88 18
-           58-18 88-18 58 18 88 18 v44h-352z"
+         58-18 88-18 58 18 88 18 v44h-352z"
             />
           </defs>
           <g className="parallax">
-            <use
+            {/* <use
               xlinkHref="#gentle-wave"
               x="48"
               y="0"
-              fill="rgba(133, 91, 49, 1)"
+              fill="rgba(145, 105, 65, 1)"
             />
             <use
               xlinkHref="#gentle-wave"
               x="48"
               y="3"
-              fill="rgba(179, 140, 97, 1)"
+              fill="rgba(179, 140, 97, 0.5)"
             />
             <use
               xlinkHref="#gentle-wave"
               x="48"
               y="5"
-              fill="rgba(241, 222, 201, 0.2)"
-            />
-            <use
-              xlinkHref="#gentle-wave"
-              x="48"
-              y="7"
-              fill="rgba(241, 222, 201, 0.1)"
-            />
+              fill="rgba(241, 222, 201, 0.4)"
+            /> */}
           </g>
-        </svg> */}
-
-
-
-<svg
-  className="waves"
-  xmlns="http://www.w3.org/2000/svg"
-  xmlnsXlink="http://www.w3.org/1999/xlink"
-  viewBox="0 24 150 28"
-  preserveAspectRatio="none"
-  shapeRendering="auto"
->
-  <defs>
-    <path
-      id="gentle-wave"
-      d="M-160 44c30 0 58-18 88-18s 58 18 88 18
-         58-18 88-18 58 18 88 18 v44h-352z"
-    />
-  </defs>
-  <g className="parallax">
-    {/* <use xlinkHref="#gentle-wave" x="48" y="0" fill="rgba(145, 105, 65, 1)" /> */}
-    {/* <use xlinkHref="#gentle-wave" x="48" y="3" fill="rgba(179, 140, 97, 0.5)" />
-    <use
-      xlinkHref="#gentle-wave"
-      x="48"
-      y="5"
-      fill="rgba(241, 222, 201, 0.4)"
-    /> */}
-  </g>
-</svg>
-
-
-
-        
+        </svg>
       </header>
 
       {/* Floating Action Button */}

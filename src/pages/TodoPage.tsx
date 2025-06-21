@@ -148,7 +148,7 @@ export default function TodoPage() {
           <div className="w-6"></div>
           <button
             onClick={() => setShowMonthModal(true)}
-            className="text-xl font-bold tracking-wide hover:text-[#f1dec9] transition-colors indie-flower z-50 text-shadow-white"
+            className="text-xl font-bold tracking-wide hover:text-[#f1dec9] transition-colors z-50 text-shadow-white"
           >
             {monthLabels[month]} {year}
           </button>

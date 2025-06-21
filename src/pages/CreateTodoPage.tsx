@@ -10,7 +10,8 @@ import {
   MobileDatePicker,
 } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { LucideX, LucideCheck } from "lucide-react";
+import { LucideX, LucideCheck, ChevronDown } from "lucide-react";
+import { Listbox, ListboxButton, ListboxOptions } from "@headlessui/react";
 
 // Dayjs Locale Import - WICHTIG!
 import "dayjs/locale/de";
@@ -23,30 +24,62 @@ export default function CreateTodoPage() {
   const [title, setTitle] = useState("");
   const [time, setTime] = useState("");
   const [date, setDate] = useState(dayjs().format("YYYY-MM-DD"));
+  const [repeatCount, setRepeatCount] = useState<number | null>(null);
+  const [repeatUnit, setRepeatUnit] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [repeatError, setRepeatError] = useState("");
 
   // Aktiviere deutsche Lokalisierung für dayjs
   dayjs.locale("de");
 
+  // Optionen für Wiederholung
+  const repeatCountOptions = Array.from({ length: 30 }, (_, i) => i + 1);
+  const repeatUnitOptions = [
+    { value: "day", label: "Tage" },
+    { value: "week", label: "Wochen" },
+    { value: "month", label: "Monate" },
+  ];
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Reset errors
+    setError("");
+    setRepeatError("");
 
     if (!title.trim()) {
       setError("Bitte geben Sie einen Titel ein");
       return;
     }
 
+    // Prüfe Wiederholungsfelder
+    if ((repeatCount && !repeatUnit) || (!repeatCount && repeatUnit)) {
+      setRepeatError("Bitte beide Felder für Wiederholung auswählen");
+      return;
+    }
+
     setIsLoading(true);
-    setError("");
 
     try {
-      await todoService.add({
-        title: title.trim(),
-        time: time || null,
-        date: date,
-        is_done: false,
-      });
+      if (repeatCount && repeatUnit) {
+        // Wiederholende Aufgabe anlegen
+        await todoService.addRecurringTodo({
+          title: title.trim(),
+          start_date: date,
+          repeat_count: repeatCount,
+          repeat_unit: repeatUnit as "day" | "week" | "month",
+          time: time || null,
+        });
+      } else {
+        // Normales Todo anlegen
+        await todoService.add({
+          title: title.trim(),
+          time: time || null,
+          date: date,
+          is_done: false,
+        });
+      }
 
       navigate(-1); // Zurück zur vorherigen Seite
     } catch (err) {
@@ -64,14 +97,14 @@ export default function CreateTodoPage() {
   return (
     <div className="min-h-screen bg-[#faf4ef] px-4 py-8">
       <div className="max-w-md mx-auto">
-        <h1 className="text-3xl  text-[#855B31] mb-8 text-center indie-flower">
+        <h1 className="text-3xl  text-[#855B31] mb-8 text-center">
           Aufgabe hinzufügen
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-6" id="todo-form">
           {/* Titel-Eingabe */}
           <div>
-            <label
+            {/* <label
               htmlFor="title"
               className="block text-sm font-medium text-[#855B31] mb-2"
               style={{
@@ -80,7 +113,7 @@ export default function CreateTodoPage() {
               }}
             >
               Titel *
-            </label>
+            </label> */}
             <input
               type="text"
               id="title"
@@ -91,7 +124,7 @@ export default function CreateTodoPage() {
               }}
               className={`w-full px-4 rounded-xl border-2 transition-colors ${
                 error
-                  ? "border-red-400 bg-red-50"
+                  ? "border-[var(--color-error)]"
                   : "border-[#f1dec9] bg-white focus:border-[#B48D62] focus:outline-none"
               }`}
               style={{
@@ -103,18 +136,25 @@ export default function CreateTodoPage() {
               placeholder="Was gibts zu tun babe? (:"
               disabled={isLoading}
             />
-            {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+            {error && (
+              <p
+                className="mt-2 text-sm"
+                style={{ color: "var(--color-error)" }}
+              >
+                {error}
+              </p>
+            )}
           </div>
 
           {/* Datum-Eingabe mit MUI DatePicker */}
           <div>
-            <label
+            {/* <label
               htmlFor="date"
               className="block text-sm font-medium text-[#855B31] mb-2"
               style={{ fontSize: "16px" }}
             >
               Datum *
-            </label>
+            </label> */}
             <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="de">
               <MobileDatePicker
                 label=""
@@ -214,13 +254,13 @@ export default function CreateTodoPage() {
 
           {/* MUI TimePicker mit Custom Styling */}
           <div>
-            <label
+            {/* <label
               htmlFor="time"
               className="block text-sm font-medium text-[#855B31] mb-2"
               style={{ fontSize: "16px" }}
             >
               Uhrzeit (optional)
-            </label>
+            </label> */}
             <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="de">
               <MobileTimePicker
                 localeText={{
@@ -373,6 +413,165 @@ export default function CreateTodoPage() {
                 }}
               />
             </LocalizationProvider>
+          </div>
+
+          {/* Wiederholungsfeld */}
+          <div>
+            <label
+              htmlFor="repeat"
+              className="block text-sm font-medium text-[#855B31] mb-2"
+              style={{
+                fontFamily: '"Quicksand", sans-serif',
+                fontSize: "16px",
+              }}
+            >
+              Wiederholen (optional)
+            </label>
+            <div className="flex gap-3">
+              {/* Anzahl Dropdown */}
+              <Listbox
+                value={repeatCount}
+                onChange={(value) => {
+                  setRepeatCount(value);
+                  // Nur löschen wenn beide Felder korrekt ausgefüllt sind
+                  if (repeatError && value && repeatUnit) {
+                    setRepeatError("");
+                  }
+                }}
+                disabled={isLoading}
+              >
+                <div className="relative flex-1">
+                  <ListboxButton
+                    className={`relative w-full rounded-xl border-2 transition-colors px-3 py-2 h-[55px] text-sm text-left focus:outline-none disabled:opacity-50 ${
+                      repeatError && !repeatCount
+                        ? "border-[var(--color-error)]"
+                        : "border-[#f1dec9] bg-white focus:border-[#B48D62]"
+                    }`}
+                  >
+                    <span
+                      className="block truncate"
+                      style={{
+                        fontFamily: '"Quicksand", sans-serif',
+                        fontSize: "16px",
+                        color: repeatCount ? "#855B31" : "#CCBAA9",
+                      }}
+                    >
+                      {repeatCount || "Auswählen"}
+                    </span>
+                    <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                      <ChevronDown
+                        className="h-5 w-5 text-[#855B31]"
+                        aria-hidden="true"
+                      />
+                    </span>
+                  </ListboxButton>
+                  <ListboxOptions className="absolute z-10 mt-1 max-h-[124px] w-full overflow-auto rounded-xl bg-white border-2 border-[#f1dec9] shadow-lg focus:outline-none">
+                    {repeatCountOptions.map((count) => (
+                      <Listbox.Option
+                        key={count}
+                        className={({ active }) =>
+                          `relative cursor-pointer select-none py-2 px-3 ${
+                            active
+                              ? "bg-[#f1dec9] text-[#855B31]"
+                              : "text-[#855B31]"
+                          }`
+                        }
+                        value={count}
+                      >
+                        {({ selected }) => (
+                          <span
+                            className={`block truncate ${
+                              selected ? "font-medium" : "font-normal"
+                            }`}
+                            style={{ fontFamily: '"Quicksand", sans-serif' }}
+                          >
+                            {count}
+                          </span>
+                        )}
+                      </Listbox.Option>
+                    ))}
+                  </ListboxOptions>
+                </div>
+              </Listbox>
+
+              {/* Einheit Dropdown */}
+              <Listbox
+                value={repeatUnit}
+                onChange={(value) => {
+                  setRepeatUnit(value);
+                  // Nur löschen wenn beide Felder korrekt ausgefüllt sind
+                  if (repeatError && repeatCount && value) {
+                    setRepeatError("");
+                  }
+                }}
+                disabled={isLoading}
+              >
+                <div className="relative flex-1">
+                  <ListboxButton
+                    className={`relative w-full rounded-xl border-2 transition-colors px-3 py-2 h-[55px] text-sm text-left focus:outline-none disabled:opacity-50 ${
+                      repeatError && !repeatUnit
+                        ? "border-[var(--color-error)]"
+                        : "border-[#f1dec9] bg-white focus:border-[#B48D62]"
+                    }`}
+                  >
+                    <span
+                      className="block truncate"
+                      style={{
+                        fontFamily: '"Quicksand", sans-serif',
+                        fontSize: "16px",
+                        color: repeatUnit ? "#855B31" : "#CCBAA9",
+                      }}
+                    >
+                      {repeatUnit
+                        ? repeatUnitOptions.find(
+                            (option) => option.value === repeatUnit
+                          )?.label
+                        : "Auswählen"}
+                    </span>
+                    <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                      <ChevronDown
+                        className="h-5 w-5 text-[#855B31]"
+                        aria-hidden="true"
+                      />
+                    </span>
+                  </ListboxButton>
+                  <ListboxOptions className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-xl bg-white border-2 border-[#f1dec9] shadow-lg focus:outline-none">
+                    {repeatUnitOptions.map((option) => (
+                      <Listbox.Option
+                        key={option.value}
+                        className={({ active }) =>
+                          `relative cursor-pointer select-none py-2 px-3 ${
+                            active
+                              ? "bg-[#f1dec9] text-[#855B31]"
+                              : "text-[#855B31]"
+                          }`
+                        }
+                        value={option.value}
+                      >
+                        {({ selected }) => (
+                          <span
+                            className={`block truncate ${
+                              selected ? "font-medium" : "font-normal"
+                            }`}
+                            style={{ fontFamily: '"Quicksand", sans-serif' }}
+                          >
+                            {option.label}
+                          </span>
+                        )}
+                      </Listbox.Option>
+                    ))}
+                  </ListboxOptions>
+                </div>
+              </Listbox>
+            </div>
+            {repeatError && (
+              <p
+                className="mt-2 text-sm"
+                style={{ color: "var(--color-error)" }}
+              >
+                {repeatError}
+              </p>
+            )}
           </div>
         </form>
 

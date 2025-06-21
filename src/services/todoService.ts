@@ -11,6 +11,19 @@ export type Todo = {
   time?: string; // zB. "15:30:00"
 };
 
+export type RecurringTodo = {
+  id: string;
+  title: string;
+  start_date: string; // zB. "2025-06-21"
+  time?: string | null;
+  repeat_count: number;
+  repeat_unit: "day" | "week" | "month"; // feste Auswahl
+  is_active: boolean;
+  end_date?: string | null; // optional, falls du das später nutzt
+  created_at: string;
+};
+
+
 class TodoService {
   // Nur Todos für ein bestimmtes Datum (sortiert nach Zeit)
   async getByDate(date: string): Promise<Todo[]> {
@@ -82,6 +95,34 @@ class TodoService {
     if (error) {
       console.error("Fehler beim Einfügen:", error.message);
       throw error; // Fehler weiterwerfen für bessere Fehlerbehandlung
+    }
+  }
+
+  // Wiederholende Aufgabe anlegen
+  async addRecurringTodo(todo: {
+    title: string;
+    start_date: string;
+    repeat_count: number;
+    repeat_unit: "day" | "week" | "month";
+    time?: string | null;
+  }): Promise<void> {
+    const { error } = await supabase.from("recurring_todos").insert([
+      {
+        title: todo.title,
+        start_date: todo.start_date,
+        time: todo.time || null,
+        repeat_count: todo.repeat_count,
+        repeat_unit: todo.repeat_unit,
+        is_active: true,
+      },
+    ]);
+
+    if (error) {
+      console.error(
+        "Fehler beim Anlegen einer Wiederholungsregel:",
+        error.message
+      );
+      throw error;
     }
   }
 

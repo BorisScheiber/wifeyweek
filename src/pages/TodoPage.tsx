@@ -148,7 +148,7 @@ export default function TodoPage() {
           <div className="w-6"></div>
           <button
             onClick={() => setShowMonthModal(true)}
-            className="text-xl font-bold tracking-wide hover:text-[#f1dec9] transition-colors indie-flower"
+            className="text-xl font-bold tracking-wide hover:text-[#f1dec9] transition-colors indie-flower z-50 text-shadow-white"
           >
             {monthLabels[month]} {year}
           </button>
@@ -200,7 +200,7 @@ export default function TodoPage() {
         </svg> */}
 
 
-{/* 
+
 <svg
   className="waves"
   xmlns="http://www.w3.org/2000/svg"
@@ -217,16 +217,16 @@ export default function TodoPage() {
     />
   </defs>
   <g className="parallax">
-    <use xlinkHref="#gentle-wave" x="48" y="0" fill="rgba(133, 91, 49, 1)" />
-    <use xlinkHref="#gentle-wave" x="48" y="3" fill="rgba(179, 140, 97, 1)" />
+    {/* <use xlinkHref="#gentle-wave" x="48" y="0" fill="rgba(145, 105, 65, 1)" /> */}
+    {/* <use xlinkHref="#gentle-wave" x="48" y="3" fill="rgba(179, 140, 97, 0.5)" />
     <use
       xlinkHref="#gentle-wave"
       x="48"
       y="5"
-      fill="rgba(241, 222, 201, 0.6)"
-    />
+      fill="rgba(241, 222, 201, 0.4)"
+    /> */}
   </g>
-</svg> */}
+</svg>
 
 
 

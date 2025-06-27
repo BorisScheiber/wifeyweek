@@ -218,21 +218,21 @@ export function useRealtimeSync() {
 
 ---
 
-### 6. 🔄 Smart Query Invalidation
+### 6. 🔄 Smart Query Invalidation ✅
 
 **Dateien zu ändern:** `src/hooks/useTodoMutations.ts`
 
 **Definition of Done:**
 
-- [ ] Granulare invalidation nur für betroffene Monate
-- [ ] Batch invalidation für recurring todos
-- [ ] Performance optimiert (keine unnecessary refetches)
+- [x] Granulare invalidation nur für betroffene Monate
+- [x] Batch invalidation für recurring todos
+- [x] Performance optimiert (keine unnecessary refetches)
 
 **Akzeptanzkriterien:**
 
-- Nur betroffene Monate werden neu geladen
-- Multi-month recurring todos invalidieren richtig
-- Performance bleibt gut bei vielen todos
+- [x] Nur betroffene Monate werden neu geladen
+- [x] Multi-month recurring todos invalidieren richtig
+- [x] Performance bleibt gut bei vielen todos
 
 ---
 

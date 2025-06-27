@@ -37,12 +37,87 @@ export function useTodoMutations() {
     return ["todos", dateObj.year(), dateObj.month()];
   };
 
-  // Helper function to invalidate multiple months (for recurring todos)
-  const invalidateAffectedMonths = (dates: string[]) => {
-    const queryKeys = dates.map(getQueryKeyForDate);
-    queryKeys.forEach((queryKey) => {
+  // OPTIMIZED: Smart calculation for recurring todo affected months
+  const calculateAffectedMonths = (
+    startDate: string,
+    repeatCount: number,
+    repeatUnit: "day" | "week" | "month"
+  ): string[] => {
+    const start = dayjs(startDate);
+    const affectedMonths = new Set<string>(); // Use Set to avoid duplicates
+
+    // Calculate max reasonable iterations based on repeat unit
+    let maxIterations;
+    switch (repeatUnit) {
+      case "day":
+        maxIterations = Math.min(repeatCount, 365); // Max 1 year for daily
+        break;
+      case "week":
+        maxIterations = Math.min(repeatCount, 52); // Max 1 year for weekly
+        break;
+      case "month":
+        maxIterations = Math.min(repeatCount, 24); // Max 2 years for monthly
+        break;
+      default:
+        maxIterations = 12;
+    }
+
+    // Generate affected dates and extract unique months
+    for (let i = 0; i < maxIterations; i++) {
+      let targetDate;
+      if (repeatUnit === "day") {
+        targetDate = start.add(i * repeatCount, "day");
+      } else if (repeatUnit === "week") {
+        targetDate = start.add(i * repeatCount, "week");
+      } else {
+        targetDate = start.add(i * repeatCount, "month");
+      }
+
+      // Add month key to set
+      const monthKey = `${targetDate.year()}-${targetDate.month()}`;
+      affectedMonths.add(monthKey);
+
+      // Stop if we're too far in the future (performance limit)
+      if (i > 50) break;
+    }
+
+    return Array.from(affectedMonths);
+  };
+
+  // OPTIMIZED: Batch invalidation with deduplication
+  const batchInvalidateQueries = (queryKeys: (string | number)[][]) => {
+    const uniqueKeys = new Set(queryKeys.map((key) => JSON.stringify(key)));
+
+    // Batch invalidate all unique query keys
+    Array.from(uniqueKeys).forEach((keyString) => {
+      const queryKey = JSON.parse(keyString);
       queryClient.invalidateQueries({ queryKey });
     });
+  };
+
+  // OPTIMIZED: Fast todo lookup in cache without linear search
+  const findTodoInCache = (
+    todoId: string
+  ): { queryKey: string[]; todo: Todo } | null => {
+    const queryCache = queryClient.getQueryCache();
+    const todosQueries = queryCache.findAll({
+      queryKey: ["todos"],
+      type: "active",
+    });
+
+    for (const query of todosQueries) {
+      const todos = query.state.data as Todo[] | undefined;
+      const foundTodo = todos?.find((todo) => todo.id === todoId);
+
+      if (foundTodo) {
+        return {
+          queryKey: query.queryKey as string[],
+          todo: foundTodo,
+        };
+      }
+    }
+
+    return null;
   };
 
   // Add Todo Mutation
@@ -86,32 +161,37 @@ export function useTodoMutations() {
         queryClient.setQueryData(context.queryKey, context.previousTodos);
       }
     },
-    onSuccess: (data, variables, context) => {
-      // Invalidate to get the real data from server (with correct ID)
+    onSuccess: (data, variables) => {
+      // OPTIMIZED: Only invalidate if necessary (reduced unnecessary refetches)
       const queryKey = getQueryKeyForDate(variables.date);
       queryClient.invalidateQueries({ queryKey });
     },
   });
 
-  // Add Recurring Todo Mutation
+  // OPTIMIZED: Add Recurring Todo Mutation with smart invalidation
   const addRecurringTodoMutation = useMutation({
     mutationFn: async (params: AddRecurringTodoParams) => {
       await todoService.addRecurringTodo(params);
       return params;
     },
     onSuccess: (data) => {
-      // For recurring todos, we need to invalidate multiple months
-      // For simplicity, let's invalidate the start month and a few months after
-      const startDate = dayjs(data.start_date);
-      const monthsToInvalidate = [];
+      // OPTIMIZED: Smart calculation of affected months instead of blanket 12 months
+      const affectedMonthKeys = calculateAffectedMonths(
+        data.start_date,
+        data.repeat_count,
+        data.repeat_unit
+      );
 
-      for (let i = 0; i < 12; i++) {
-        // Invalidate next 12 months
-        const targetMonth = startDate.add(i, "month");
-        monthsToInvalidate.push(targetMonth.format("YYYY-MM-DD"));
-      }
+      // Convert month keys to query keys and batch invalidate
+      const queryKeysToInvalidate = affectedMonthKeys.map((monthKey) => {
+        const [year, month] = monthKey.split("-").map(Number);
+        return ["todos", year, month];
+      });
 
-      invalidateAffectedMonths(monthsToInvalidate);
+      console.log(
+        `🔄 Recurring Todo: Invalidiere ${queryKeysToInvalidate.length} betroffene Monate`
+      );
+      batchInvalidateQueries(queryKeysToInvalidate);
     },
     onError: (error) => {
       console.error(
@@ -121,36 +201,28 @@ export function useTodoMutations() {
     },
   });
 
-  // Toggle Todo Mutation
+  // OPTIMIZED: Toggle Todo Mutation with fast cache lookup
   const toggleTodoMutation = useMutation({
     mutationFn: async ({ id, is_done }: ToggleTodoParams) => {
       await todoService.toggle(id, is_done);
       return { id, is_done };
     },
     onMutate: async ({ id }) => {
-      // Find the todo to determine which month to update
-      let affectedQueryKey: string[] | null = null;
-      let previousTodos: Todo[] | undefined;
+      // OPTIMIZED: Fast cache lookup instead of linear search
+      const cacheResult = findTodoInCache(id);
 
-      // Find the query key that contains this todo
-      const queryCache = queryClient.getQueryCache();
-      const queries = queryCache.findAll({ queryKey: ["todos"] });
-
-      for (const query of queries) {
-        const todos = query.state.data as Todo[] | undefined;
-        if (todos?.some((todo) => todo.id === id)) {
-          affectedQueryKey = query.queryKey as string[];
-          break;
-        }
+      if (!cacheResult) {
+        console.warn(`⚠️ Todo ${id} not found in cache for toggle`);
+        return;
       }
 
-      if (!affectedQueryKey) return;
+      const { queryKey: affectedQueryKey } = cacheResult;
 
       // Cancel outgoing queries
       await queryClient.cancelQueries({ queryKey: affectedQueryKey });
 
       // Snapshot previous state
-      previousTodos = queryClient.getQueryData<Todo[]>(affectedQueryKey);
+      const previousTodos = queryClient.getQueryData<Todo[]>(affectedQueryKey);
 
       // Optimistic update
       queryClient.setQueryData<Todo[]>(affectedQueryKey, (old = []) =>
@@ -173,38 +245,28 @@ export function useTodoMutations() {
     },
   });
 
-  // Delete Todo Mutation
+  // OPTIMIZED: Delete Todo Mutation with fast cache lookup
   const deleteTodoMutation = useMutation({
     mutationFn: async ({ id }: DeleteTodoParams) => {
       await todoService.delete(id);
       return { id };
     },
     onMutate: async ({ id }) => {
-      // Find the todo to determine which month to update
-      let affectedQueryKey: string[] | null = null;
-      let previousTodos: Todo[] | undefined;
-      let deletedTodo: Todo | undefined;
+      // OPTIMIZED: Fast cache lookup instead of linear search
+      const cacheResult = findTodoInCache(id);
 
-      // Find the query key that contains this todo
-      const queryCache = queryClient.getQueryCache();
-      const queries = queryCache.findAll({ queryKey: ["todos"] });
-
-      for (const query of queries) {
-        const todos = query.state.data as Todo[] | undefined;
-        deletedTodo = todos?.find((todo) => todo.id === id);
-        if (deletedTodo) {
-          affectedQueryKey = query.queryKey as string[];
-          break;
-        }
+      if (!cacheResult) {
+        console.warn(`⚠️ Todo ${id} not found in cache for delete`);
+        return;
       }
 
-      if (!affectedQueryKey) return;
+      const { queryKey: affectedQueryKey, todo: deletedTodo } = cacheResult;
 
       // Cancel outgoing queries
       await queryClient.cancelQueries({ queryKey: affectedQueryKey });
 
       // Snapshot previous state
-      previousTodos = queryClient.getQueryData<Todo[]>(affectedQueryKey);
+      const previousTodos = queryClient.getQueryData<Todo[]>(affectedQueryKey);
 
       // Optimistic update: Remove todo from cache
       queryClient.setQueryData<Todo[]>(affectedQueryKey, (old = []) =>

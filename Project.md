@@ -236,26 +236,6 @@ export function useRealtimeSync() {
 
 ---
 
-### 7. 🛡️ Resilience & User Experience
-
-**Dateien zu ändern:** `src/components/ErrorBoundary.tsx` (neu), `src/hooks/useOfflineSync.ts` (neu)
-
-**Definition of Done:**
-
-- [ ] Offline indicator
-- [ ] Retry logic für failed mutations
-- [ ] Error boundary für React Query errors
-- [ ] Loading skeletons statt spinners
-
-**Akzeptanzkriterien:**
-
-- App funktioniert offline (read-only)
-- Failed operations werden automatisch retry
-- Graceful error handling
-- Smooth loading states
-
----
-
 ## 🧪 Bonus: Virtuelle Recurring ToDos (Phase 2)
 
 **Erst nach Hauptfeatures implementieren**

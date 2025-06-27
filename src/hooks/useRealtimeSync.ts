@@ -19,9 +19,11 @@ export function useRealtimeSync() {
           console.log("🔵 Todos Realtime Event:", payload.eventType, payload);
 
           // Bestimme das betroffene Datum
-          const changedDate = payload.new?.date || payload.old?.date;
+          const changedDate =
+            (payload.new as Record<string, unknown>)?.date ||
+            (payload.old as Record<string, unknown>)?.date;
 
-          if (changedDate) {
+          if (changedDate && typeof changedDate === "string") {
             const date = dayjs(changedDate);
             const queryKey = ["todos", date.year(), date.month()];
 
@@ -55,9 +57,11 @@ export function useRealtimeSync() {
 
           // Bei recurring_todos Änderungen: Invalidiere alle prefetched Monate
           // da recurring todos mehrere Monate betreffen können
-          const start_date = payload.new?.start_date || payload.old?.start_date;
+          const start_date =
+            (payload.new as Record<string, unknown>)?.start_date ||
+            (payload.old as Record<string, unknown>)?.start_date;
 
-          if (start_date) {
+          if (start_date && typeof start_date === "string") {
             const startDate = dayjs(start_date);
 
             // Invalidiere die nächsten 12 Monate ab start_date
@@ -93,7 +97,7 @@ export function useRealtimeSync() {
       .subscribe();
 
     // Connection Status Logging
-    const handleConnectionChange = (status: string, error?: any) => {
+    const handleConnectionChange = (status: string, error?: unknown) => {
       console.log(`📡 Supabase Realtime Status: ${status}`, error || "");
     };
 

@@ -17,7 +17,7 @@ Supabase Realtime sorgt dafür, dass du über mehrere Geräte (z. B. du & dein
 * Monatsansicht, Tagesansicht, Swipe-to-delete, Add-Funktion
 * Reaktive Anzeige nach Änderung (durch Reload)
 
-## 🕸️ Nächste Schritte (Roadmap)
+## 🔸 Nächste Schritte (Roadmap)
 
 ### 1. 🧱 TanStack Query einführen
 
@@ -25,7 +25,7 @@ Supabase Realtime sorgt dafür, dass du über mehrere Geräte (z. B. du & dein
 * Setup in `main.tsx` mit `QueryClientProvider`
 * `QueryClient` anlegen und exportieren
 
-### 2. 📆 Daten über TanStack cachen
+### 2. 🗖️ Daten über TanStack cachen
 
 * `useQuery(["todos", year, month], ...)` verwenden in `TodoPage`
 * `todoService.getByMonth()` als `fetchFn` übergeben
@@ -77,6 +77,27 @@ queryClient.invalidateQueries(["todos", 2025, 7]);
 * `useQuery` mit `staleTime`, `cacheTime`, `refetchOnWindowFocus` etc. konfigurieren
 * Für Offline-Nutzung ggf. PWA mit IndexedDB später
 
+---
+
+### 🧪 Zusätzlich: Virtuelle Recurring ToDos (Option C)
+
+Wir verwenden keine geklonten `recurring_todos` mehr in der DB, sondern erzeugen sie clientseitig:
+
+* `generateVirtualTodos(rules, date)` erzeugt virtuelle Aufgaben mit IDs wie `virtual_${recurringId}_${date}`
+* `useSmartTodos(date)` merged `realTodos` + `virtualTodos`
+* `toggleSmartTodo(todo)` entscheidet automatisch:
+
+  * Wenn `todo.is_virtual` → materialisiere + speichere ToDo in DB (per upsert)
+  * Wenn real → klassisches toggle
+* Cache virtualTodos via `useQuery(['virtual-todos', date, rules], ...)`
+* Realtime: Wenn `recurring_rules` ändern → invalidate `recurring-rules` + `virtual-todos`
+
+Diese Logik ermöglicht später auch Features wie:
+
+* "Ab hier löschen / ändern"
+* Performance bei großen Datenmengen
+* Nur genutzte ToDos landen in der DB
+
 ## 🧹 Bonus Features danach
 
 * Aufgaben-Farben pro Badge (Hubby/Wifey)
@@ -86,11 +107,12 @@ queryClient.invalidateQueries(["todos", 2025, 7]);
 
 ## 🚀 Zusammenfassung
 
-| Feature                       | Status         | Umsetzung                |
-| ----------------------------- | -------------- | ------------------------ |
-| Monatsgenerierung             | ✅ Fertig       | Supabase + Upsert        |
-| Lokaler Cache (monatlich)     | 🕸️ Ausstehend | TanStack Query           |
-| Realtime-Updates              | 🕸️ Ausstehend | Supabase Realtime        |
-| Optimistische UI              | 🕸️ Ausstehend | useMutation etc.         |
-| Prefetching 3 Monate          | 🕸️ Ausstehend | `queryClient.prefetch`   |
-| Datenverwaltung zentralisiert | 🕸️ Ausstehend | `todoService` + TanStack |
+| Feature                       | Status        | Umsetzung                                      |
+| ----------------------------- | ------------- | ---------------------------------------------- |
+| Monatsgenerierung             | ✅ Fertig      | Supabase + Upsert                              |
+| Lokaler Cache (monatlich)     | 🔸 Ausstehend | TanStack Query                                 |
+| Realtime-Updates              | 🔸 Ausstehend | Supabase Realtime                              |
+| Optimistische UI              | 🔸 Ausstehend | useMutation etc.                               |
+| Prefetching 3 Monate          | 🔸 Ausstehend | `queryClient.prefetch`                         |
+| Datenverwaltung zentralisiert | 🔸 Ausstehend | `todoService` + TanStack                       |
+| Virtuelle ToDos               | 🔸 Ausstehend | `generateVirtualTodos()` + `toggleSmartTodo()` |

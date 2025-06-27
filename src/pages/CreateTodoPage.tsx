@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { todoService } from "../services/todoService";
+import { useTodoMutations } from "../hooks/useTodoMutations";
 import dayjs from "dayjs";
 import { registerLocale } from "react-datepicker";
 import { de } from "date-fns/locale/de";
@@ -26,9 +26,14 @@ export default function CreateTodoPage() {
   const [date, setDate] = useState(dayjs().format("YYYY-MM-DD"));
   const [repeatCount, setRepeatCount] = useState<number | null>(null);
   const [repeatUnit, setRepeatUnit] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [repeatError, setRepeatError] = useState("");
+
+  // Mutations für optimistic updates
+  const { addTodo, addRecurringTodo } = useTodoMutations();
+
+  // Loading state from mutations
+  const isLoading = addTodo.isPending || addRecurringTodo.isPending;
 
   // Aktiviere deutsche Lokalisierung für dayjs
   dayjs.locale("de");
@@ -59,34 +64,48 @@ export default function CreateTodoPage() {
       return;
     }
 
-    setIsLoading(true);
-
     try {
       if (repeatCount && repeatUnit) {
-        // Wiederholende Aufgabe anlegen
-        await todoService.addRecurringTodo({
-          title: title.trim(),
-          start_date: date,
-          repeat_count: repeatCount,
-          repeat_unit: repeatUnit as "day" | "week" | "month",
-          time: time || null,
-        });
+        // Wiederholende Aufgabe anlegen mit optimistic update
+        addRecurringTodo.mutate(
+          {
+            title: title.trim(),
+            start_date: date,
+            repeat_count: repeatCount,
+            repeat_unit: repeatUnit as "day" | "week" | "month",
+            time: time || null,
+          },
+          {
+            onSuccess: () => {
+              navigate(-1); // Zurück zur vorherigen Seite
+            },
+            onError: () => {
+              setError("Fehler beim Speichern der wiederkehrenden Aufgabe");
+            },
+          }
+        );
       } else {
-        // Normales Todo anlegen
-        await todoService.add({
-          title: title.trim(),
-          time: time || null,
-          date: date,
-          is_done: false,
-        });
+        // Normales Todo anlegen mit optimistic update
+        addTodo.mutate(
+          {
+            title: title.trim(),
+            time: time || null,
+            date: date,
+            is_done: false,
+          },
+          {
+            onSuccess: () => {
+              navigate(-1); // Zurück zur vorherigen Seite
+            },
+            onError: () => {
+              setError("Fehler beim Speichern der Aufgabe");
+            },
+          }
+        );
       }
-
-      navigate(-1); // Zurück zur vorherigen Seite
     } catch (err) {
-      setError("Fehler beim Speichern der Aufgabe");
-      console.error("Error adding todo:", err);
-    } finally {
-      setIsLoading(false);
+      setError("Unerwarteter Fehler");
+      console.error("Error in handleSubmit:", err);
     }
   };
 

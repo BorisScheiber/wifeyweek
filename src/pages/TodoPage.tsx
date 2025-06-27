@@ -7,9 +7,12 @@ import {
 } from "lucide-react";
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { todoService, type Todo } from "../services/todoService";
+import { useQuery } from "@tanstack/react-query";
+import { todoService } from "../services/todoService";
 import dayjs from "dayjs";
 import SwipeableItem from "../components/SwipeableItem";
+import { usePrefetchTodos } from "../hooks/usePrefetchTodos";
+import { useTodoMutations } from "../hooks/useTodoMutations";
 
 export default function TodoPage() {
   const navigate = useNavigate();
@@ -66,9 +69,30 @@ export default function TodoPage() {
   const isCurrentMonth = today.year() === year && today.month() === month;
   const initialSelectedIndex = isCurrentMonth ? today.date() - 1 : 0;
   const [selectedIndex, setSelectedIndex] = useState(initialSelectedIndex);
-  const [todos, setTodos] = useState<Todo[]>([]);
   const dayRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const hasScrolledInitially = useRef(false);
+
+  // useQuery für todos mit automatic refetch bei month/year change
+  const {
+    data: todos = [],
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["todos", year, month],
+    queryFn: async () => {
+      // Zuerst wiederkehrende Aufgaben für diesen Monat generieren
+      await todoService.generateRecurringTodosForMonth(year, month);
+      // Dann alle Todos für den Monat laden
+      return todoService.getByMonth(year, month);
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  // Prefetch für 3 Monate (current ±1) im Hintergrund
+  usePrefetchTodos(year, month);
+
+  // Mutations für optimistic updates
+  const { toggleTodo, deleteTodo } = useTodoMutations();
 
   const days = useMemo(() => {
     return baseDays.map((day) => {
@@ -87,25 +111,10 @@ export default function TodoPage() {
     .date(Number(days[selectedIndex].date))
     .format("YYYY-MM-DD");
 
-  useEffect(() => {
-    async function fetchTodosForMonth() {
-      try {
-        // Zuerst wiederkehrende Aufgaben für diesen Monat generieren
-        await todoService.generateRecurringTodosForMonth(year, month);
-
-        // Dann alle Todos für den Monat laden
-        const data = await todoService.getByMonth(year, month);
-        setTodos(data);
-      } catch (error) {
-        console.error("Fehler beim Laden/Generieren der Todos:", error);
-        // Fallback: Lade zumindest die vorhandenen Todos
-        const data = await todoService.getByMonth(year, month);
-        setTodos(data);
-      }
-    }
-
-    fetchTodosForMonth();
-  }, [year, month]);
+  // Error handling für useQuery
+  if (error) {
+    console.error("Fehler beim Laden der Todos:", error);
+  }
 
   useEffect(() => {
     const selectedRef = dayRefs.current[selectedIndex];
@@ -119,20 +128,14 @@ export default function TodoPage() {
     }
   }, [selectedIndex]);
 
-  async function toggleDone(id: string, is_done: boolean) {
-    await todoService.toggle(id, is_done);
-    setTodos((prevTodos) =>
-      prevTodos.map((todo) =>
-        todo.id === id ? { ...todo, is_done: !todo.is_done } : todo
-      )
-    );
-  }
+  // Use mutations instead of direct service calls
+  const handleToggleDone = (id: string, is_done: boolean) => {
+    toggleTodo.mutate({ id, is_done });
+  };
 
-  async function deleteTodo(id: string) {
-    await todoService.delete(id);
-    const updated = await todoService.getByMonth(year, month);
-    setTodos(updated);
-  }
+  const handleDeleteTodo = (id: string) => {
+    deleteTodo.mutate({ id });
+  };
 
   const handleMonthSelect = (index: number) => {
     const today = dayjs();
@@ -242,48 +245,63 @@ export default function TodoPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 space-y-3 todo-list">
-        {todos
-          .filter((todo) => todo.date === currentDate)
-          .sort((a, b) => {
-            // Wenn beide Todos eine Zeit haben, sortiere nach Zeit
-            if (a.time && b.time) {
-              return a.time.localeCompare(b.time);
-            }
-            // Todos ohne Zeit kommen nach Todos mit Zeit
-            if (a.time && !b.time) return -1;
-            if (!a.time && b.time) return 1;
-            // Beide ohne Zeit - behalte ursprüngliche Reihenfolge
-            return 0;
-          })
-          .map((todo) => (
-            <SwipeableItem key={todo.id} onDelete={() => deleteTodo(todo.id)}>
-              <div className="flex items-start gap-3">
-                <button
-                  onClick={() => toggleDone(todo.id, todo.is_done)}
-                  className={`w-5 h-5 mt-1 flex items-center justify-center rounded-full border-2 ${
-                    todo.is_done
-                      ? "bg-[#855B31] border-[#855B31] text-white"
-                      : "border-[#855B31]"
-                  }`}
-                >
-                  {todo.is_done && <Check size={14} strokeWidth={3} />}
-                </button>
-                <div className="flex-1">
-                  <div className="font-medium text-[#855B31]">{todo.title}</div>
-                  {todo.time && (
-                    <div className="text-sm text-[#855B31] flex items-center gap-1 mt-0.5">
-                      <Clock
-                        size={16}
-                        strokeWidth={2}
-                        className="text-[#855B31]"
-                      />
-                      <span>{todo.time.slice(0, 5)}</span>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-[#855B31]">Todos werden geladen...</div>
+          </div>
+        ) : error ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-red-600">Fehler beim Laden der Todos</div>
+          </div>
+        ) : (
+          todos
+            .filter((todo) => todo.date === currentDate)
+            .sort((a, b) => {
+              // Wenn beide Todos eine Zeit haben, sortiere nach Zeit
+              if (a.time && b.time) {
+                return a.time.localeCompare(b.time);
+              }
+              // Todos ohne Zeit kommen nach Todos mit Zeit
+              if (a.time && !b.time) return -1;
+              if (!a.time && b.time) return 1;
+              // Beide ohne Zeit - behalte ursprüngliche Reihenfolge
+              return 0;
+            })
+            .map((todo) => (
+              <SwipeableItem
+                key={todo.id}
+                onDelete={() => handleDeleteTodo(todo.id)}
+              >
+                <div className="flex items-start gap-3">
+                  <button
+                    onClick={() => handleToggleDone(todo.id, todo.is_done)}
+                    className={`w-5 h-5 mt-1 flex items-center justify-center rounded-full border-2 ${
+                      todo.is_done
+                        ? "bg-[#855B31] border-[#855B31] text-white"
+                        : "border-[#855B31]"
+                    }`}
+                  >
+                    {todo.is_done && <Check size={14} strokeWidth={3} />}
+                  </button>
+                  <div className="flex-1">
+                    <div className="font-medium text-[#855B31]">
+                      {todo.title}
                     </div>
-                  )}
+                    {todo.time && (
+                      <div className="text-sm text-[#855B31] flex items-center gap-1 mt-0.5">
+                        <Clock
+                          size={16}
+                          strokeWidth={2}
+                          className="text-[#855B31]"
+                        />
+                        <span>{todo.time.slice(0, 5)}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </SwipeableItem>
-          ))}
+              </SwipeableItem>
+            ))
+        )}
       </div>
 
       {showMonthModal && (

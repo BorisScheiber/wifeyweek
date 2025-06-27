@@ -2,117 +2,285 @@
 
 ## 🧠 Ziel
 
-App lädt beim Start alle ToDos für z. B. 3 Monate (z. B. Juni–August)
-
-Änderungen (hinzufügen, löschen, bearbeiten) werden sofort in der UI sichtbar, ohne manuelles Reload
-
-Supabase Realtime sorgt dafür, dass du über mehrere Geräte (z. B. du & deine Frau) immer die gleichen Daten siehst
+App lädt beim Start alle ToDos für 3 Monate, Änderungen werden sofort in der UI sichtbar, Supabase Realtime sorgt für Multi-Device Sync.
 
 ## ✅ Was wir schon haben
 
-* Supabase mit todos + recurring\_todos
-* Upsert mit recurring\_id + UNIQUE Constraint
-* Generierung der Monatsdaten bei Monatswechsel
-* todoService mit allen nötigen Methoden
-* Monatsansicht, Tagesansicht, Swipe-to-delete, Add-Funktion
-* Reaktive Anzeige nach Änderung (durch Reload)
-
-## 🔸 Nächste Schritte (Roadmap)
-
-### 1. 🧱 TanStack Query einführen
-
-* `npm install @tanstack/react-query`
-* Setup in `main.tsx` mit `QueryClientProvider`
-* `QueryClient` anlegen und exportieren
-
-### 2. 🗖️ Daten über TanStack cachen
-
-* `useQuery(["todos", year, month], ...)` verwenden in `TodoPage`
-* `todoService.getByMonth()` als `fetchFn` übergeben
-* Kein manuelles `useState(todos)` mehr nötig
-
-### 3. 📂 Prefetch für 3 Monate
-
-* Beim App-Start (oder per Hintergrund-Task) alle gewünschten Monate vorladen:
-
-```ts
-queryClient.prefetchQuery(["todos", 2025, 6], ...)
-queryClient.prefetchQuery(["todos", 2025, 7], ...)
-queryClient.prefetchQuery(["todos", 2025, 8], ...)
-```
-
-* Optional: automatisiert über aktuellen Monat ±1/±2
-
-### 4. ⚡ Optimistische Updates einbauen
-
-* z. B. bei `todoService.toggle(...)`:
-
-  * erst im Cache sofort `is_done` ändern
-  * danach in Supabase bestätigen (oder rollback bei Fehler)
-
-### 5. 🧠 Supabase Realtime aktivieren
-
-* `npm install @supabase/realtime-js` (bzw. ist oft schon enthalten)
-* Supabase-Client konfigurieren:
-
-```ts
-supabase
-  .channel("todos-changes")
-  .on("postgres_changes", { event: "*", schema: "public", table: "todos" }, (payload) => {
-    queryClient.invalidateQueries(["todos", payload.new.date]);
-  })
-  .subscribe();
-```
-
-### 6. 🔄 Queries automatisch invalidieren
-
-* z. B. wenn ein Todo im Juli geändert wird:
-
-```ts
-queryClient.invalidateQueries(["todos", 2025, 7]);
-```
-
-### 7. 🛡️ Fallback & Offline
-
-* `useQuery` mit `staleTime`, `cacheTime`, `refetchOnWindowFocus` etc. konfigurieren
-* Für Offline-Nutzung ggf. PWA mit IndexedDB später
+- ✅ Supabase mit todos + recurring_todos
+- ✅ todoService mit allen CRUD Methoden
+- ✅ TodoPage mit Monats-/Tagesansicht
+- ✅ SwipeableItem Component
+- ✅ Add/Edit Funktionalität
 
 ---
 
-### 🧪 Zusätzlich: Virtuelle Recurring ToDos (Option C)
+## 🔸 ROADMAP - Step by Step Implementation
 
-Wir verwenden keine geklonten `recurring_todos` mehr in der DB, sondern erzeugen sie clientseitig:
+### 1. 🧱 TanStack Query Setup ✅
 
-* `generateVirtualTodos(rules, date)` erzeugt virtuelle Aufgaben mit IDs wie `virtual_${recurringId}_${date}`
-* `useSmartTodos(date)` merged `realTodos` + `virtualTodos`
-* `toggleSmartTodo(todo)` entscheidet automatisch:
+**Dateien zu ändern:** `src/main.tsx`, `package.json`
 
-  * Wenn `todo.is_virtual` → materialisiere + speichere ToDo in DB (per upsert)
-  * Wenn real → klassisches toggle
-* Cache virtualTodos via `useQuery(['virtual-todos', date, rules], ...)`
-* Realtime: Wenn `recurring_rules` ändern → invalidate `recurring-rules` + `virtual-todos`
+**Definition of Done:**
 
-Diese Logik ermöglicht später auch Features wie:
+- [x] `@tanstack/react-query` installiert
+- [x] QueryClient in main.tsx konfiguriert
+- [x] QueryClientProvider wrapper um App
+- [x] DevTools aktiviert (development)
 
-* "Ab hier löschen / ändern"
-* Performance bei großen Datenmengen
-* Nur genutzte ToDos landen in der DB
+**Akzeptanzkriterien:**
 
-## 🧹 Bonus Features danach
+- App startet ohne Fehler
+- React Query DevTools sichtbar
+- Console zeigt "QueryClient initialized"
 
-* Aufgaben-Farben pro Badge (Hubby/Wifey)
-* Realtime-Chat oder Notifications
-* ToDo-Sync mit Kalendersystemen (z. B. Google Calendar)
-* PWA-Installation (Icon + Homescreen)
+**Code-Referenz:**
 
-## 🚀 Zusammenfassung
+```tsx
+// main.tsx
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 
-| Feature                       | Status        | Umsetzung                                      |
-| ----------------------------- | ------------- | ---------------------------------------------- |
-| Monatsgenerierung             | ✅ Fertig      | Supabase + Upsert                              |
-| Lokaler Cache (monatlich)     | 🔸 Ausstehend | TanStack Query                                 |
-| Realtime-Updates              | 🔸 Ausstehend | Supabase Realtime                              |
-| Optimistische UI              | 🔸 Ausstehend | useMutation etc.                               |
-| Prefetching 3 Monate          | 🔸 Ausstehend | `queryClient.prefetch`                         |
-| Datenverwaltung zentralisiert | 🔸 Ausstehend | `todoService` + TanStack                       |
-| Virtuelle ToDos               | 🔸 Ausstehend | `generateVirtualTodos()` + `toggleSmartTodo()` |
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      cacheTime: 1000 * 60 * 30, // 30 minutes
+    },
+  },
+});
+```
+
+---
+
+### 2. 🗖️ TodoPage auf useQuery umstellen ✅
+
+**Dateien zu ändern:** `src/pages/TodoPage.tsx`
+
+**Definition of Done:**
+
+- [x] `useState(todos)` entfernt
+- [x] `useQuery` für todos implementiert
+- [x] Error handling implementiert
+- [x] Cache invalidation bei month/year change
+
+**Akzeptanzkriterien:**
+
+- [x] TodoPage lädt Daten über useQuery
+- [x] Error message bei fetch failure
+- [x] Monatswechsel triggert neue Query
+
+**Code-Referenz:**
+
+```tsx
+const {
+  data: todos = [],
+  isLoading,
+  error,
+} = useQuery({
+  queryKey: ["todos", year, month],
+  queryFn: () => todoService.getByMonth(year, month),
+  staleTime: 1000 * 60 * 5,
+});
+```
+
+---
+
+### 3. 📂 Prefetch für 3 Monate ✅
+
+**Dateien zu ändern:** `src/pages/TodoPage.tsx`, `src/hooks/usePrefetchTodos.ts` (neu)
+
+**Definition of Done:**
+
+- [x] Hook `usePrefetchTodos` erstellt
+- [x] Prefetch für current month ±1
+- [x] Prefetch läuft im Hintergrund
+- [x] Prefetch berücksichtigt Jahr-Wechsel
+
+**Akzeptanzkriterien:**
+
+- [x] 3 Monate werden automatisch prefetched
+- [x] Cache zeigt prefetched data in DevTools
+- [x] Navigation zwischen Monaten ist instant
+
+**Code-Referenz:**
+
+```tsx
+// usePrefetchTodos.ts
+export function usePrefetchTodos(currentYear: number, currentMonth: number) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const monthsToPreload = [
+      { year: currentYear, month: currentMonth - 1 },
+      { year: currentYear, month: currentMonth },
+      { year: currentYear, month: currentMonth + 1 },
+    ];
+    // ... handle year boundaries
+  }, [currentYear, currentMonth]);
+}
+```
+
+---
+
+### 4. ⚡ Optimistic Updates für Add, Toggle & Delete ✅
+
+**Dateien zu ändern:** `src/pages/TodoPage.tsx`, `src/pages/CreateTodoPage.tsx`, `src/hooks/useTodoMutations.ts` (neu)
+
+**Definition of Done:**
+
+- [x] `useMutation` für add implementiert
+- [x] `useMutation` für toggle implementiert
+- [x] `useMutation` für delete implementiert
+- [x] Optimistic updates mit rollback
+- [x] Error handling mit console logging
+
+**Akzeptanzkriterien:**
+
+- [x] Add Todo ist sofort sichtbar
+- [x] Toggle Todo ist sofort sichtbar
+- [x] Delete Todo ist sofort sichtbar
+- [x] Bei Netzwerk-Fehler: Rollback + Error message
+- [x] Success feedback für User
+
+**Code-Referenz:**
+
+```tsx
+const toggleMutation = useMutation({
+  mutationFn: ({ id, is_done }: ToggleParams) =>
+    todoService.toggle(id, is_done),
+  onMutate: async ({ id }) => {
+    // Optimistic update
+    await queryClient.cancelQueries(["todos", year, month]);
+    const previousTodos = queryClient.getQueryData(["todos", year, month]);
+
+    queryClient.setQueryData(["todos", year, month], (old: Todo[]) =>
+      old?.map((todo) =>
+        todo.id === id ? { ...todo, is_done: !todo.is_done } : todo
+      )
+    );
+
+    return { previousTodos };
+  },
+  onError: (err, variables, context) => {
+    // Rollback
+    queryClient.setQueryData(["todos", year, month], context?.previousTodos);
+  },
+});
+```
+
+---
+
+### 5. 🧠 Supabase Realtime Integration
+
+**Dateien zu ändern:** `src/lib/supabaseClient.ts`, `src/hooks/useRealtimeSync.ts` (neu)
+
+**Definition of Done:**
+
+- [ ] Realtime channel für "todos" table
+- [ ] Query invalidation bei INSERT/UPDATE/DELETE
+- [ ] Connection state handling
+- [ ] Cleanup bei component unmount
+
+**Akzeptanzkriterien:**
+
+- Änderungen von anderen Devices sofort sichtbar
+- Realtime connection status angezeigt
+- Keine Memory leaks bei navigation
+
+**Code-Referenz:**
+
+```tsx
+// useRealtimeSync.ts
+export function useRealtimeSync() {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("todos-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "todos" },
+        (payload) => {
+          const changedDate = payload.new?.date || payload.old?.date;
+          if (changedDate) {
+            const date = dayjs(changedDate);
+            queryClient.invalidateQueries(["todos", date.year(), date.month()]);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, [queryClient]);
+}
+```
+
+---
+
+### 6. 🔄 Smart Query Invalidation
+
+**Dateien zu ändern:** `src/hooks/useTodoMutations.ts`
+
+**Definition of Done:**
+
+- [ ] Granulare invalidation nur für betroffene Monate
+- [ ] Batch invalidation für recurring todos
+- [ ] Performance optimiert (keine unnecessary refetches)
+
+**Akzeptanzkriterien:**
+
+- Nur betroffene Monate werden neu geladen
+- Multi-month recurring todos invalidieren richtig
+- Performance bleibt gut bei vielen todos
+
+---
+
+### 7. 🛡️ Resilience & User Experience
+
+**Dateien zu ändern:** `src/components/ErrorBoundary.tsx` (neu), `src/hooks/useOfflineSync.ts` (neu)
+
+**Definition of Done:**
+
+- [ ] Offline indicator
+- [ ] Retry logic für failed mutations
+- [ ] Error boundary für React Query errors
+- [ ] Loading skeletons statt spinners
+
+**Akzeptanzkriterien:**
+
+- App funktioniert offline (read-only)
+- Failed operations werden automatisch retry
+- Graceful error handling
+- Smooth loading states
+
+---
+
+## 🧪 Bonus: Virtuelle Recurring ToDos (Phase 2)
+
+**Erst nach Hauptfeatures implementieren**
+
+---
+
+## 🎯 Cursor Instructions
+
+**Nach jedem abgeschlossenen Schritt:**
+
+1. Alle Acceptance Criteria erfüllt ✅
+2. Code getestet und funktionsfähig ✅
+3. Diese Roadmap updaten (Status ändern) ✅
+4. Kurzes Summary der Änderungen ✅
+
+**Note: Commits werden manuell gemacht (für rollback flexibility)**
+
+**Cursor Prompt Template:**
+
+```
+Implementiere Schritt X der WifeyWeek Roadmap.
+
+ZIEL: [Definition of Done aus Roadmap]
+DATEIEN: [Spezifische Dateien die geändert werden müssen]
+AKZEPTANZ: [Alle Akzeptanzkriterien aus Roadmap]
+
+Verwende die Code-Referenz als Basis, aber adaptiere sie für unsere spezifische Codebase.
+Nach Implementierung: Update die Roadmap und markiere Schritt als ✅.
+```

@@ -18,11 +18,11 @@ const queryClient = new QueryClient({
 console.log("QueryClient initialized");
 
 createRoot(document.getElementById("root")!).render(
-  <StrictMode>
+  
     <QueryClientProvider client={queryClient}>
       <App />
       {/* DevTools nur in Development */}
       {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>
-  </StrictMode>
+  
 );

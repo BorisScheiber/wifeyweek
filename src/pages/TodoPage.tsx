@@ -13,6 +13,7 @@ import dayjs from "dayjs";
 import SwipeableItem from "../components/SwipeableItem";
 import { usePrefetchTodos } from "../hooks/usePrefetchTodos";
 import { useTodoMutations } from "../hooks/useTodoMutations";
+import { useRealtimeSync } from "../hooks/useRealtimeSync";
 
 export default function TodoPage() {
   const navigate = useNavigate();
@@ -93,6 +94,9 @@ export default function TodoPage() {
 
   // Mutations für optimistic updates
   const { toggleTodo, deleteTodo } = useTodoMutations();
+
+  // Realtime sync für Multi-Device Updates
+  useRealtimeSync();
 
   const days = useMemo(() => {
     return baseDays.map((day) => {

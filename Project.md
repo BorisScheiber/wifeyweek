@@ -170,22 +170,23 @@ const toggleMutation = useMutation({
 
 ---
 
-### 5. 🧠 Supabase Realtime Integration
+### 5. 🧠 Supabase Realtime Integration ✅
 
 **Dateien zu ändern:** `src/lib/supabaseClient.ts`, `src/hooks/useRealtimeSync.ts` (neu)
 
 **Definition of Done:**
 
-- [ ] Realtime channel für "todos" table
-- [ ] Query invalidation bei INSERT/UPDATE/DELETE
-- [ ] Connection state handling
-- [ ] Cleanup bei component unmount
+- [x] Realtime channel für "todos" table
+- [x] Realtime channel für "recurring_todos" table
+- [x] Query invalidation bei INSERT/UPDATE/DELETE
+- [x] Connection state handling
+- [x] Cleanup bei component unmount
 
 **Akzeptanzkriterien:**
 
-- Änderungen von anderen Devices sofort sichtbar
-- Realtime connection status angezeigt
-- Keine Memory leaks bei navigation
+- [x] Änderungen von anderen Devices sofort sichtbar
+- [x] Realtime connection status angezeigt
+- [x] Keine Memory leaks bei navigation
 
 **Code-Referenz:**
 

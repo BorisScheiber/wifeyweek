@@ -187,8 +187,8 @@ export default function TodoPage() {
          58-18 88-18 58 18 88 18 v44h-352z"
             />
           </defs>
-          <g className="parallax">
-            {/* <use
+          {/* <g className="parallax">
+            <use
               xlinkHref="#gentle-wave"
               x="48"
               y="0"
@@ -205,8 +205,8 @@ export default function TodoPage() {
               x="48"
               y="5"
               fill="rgba(241, 222, 201, 0.4)"
-            /> */}
-          </g>
+            />
+          </g> */}
         </svg>
       </header>
 

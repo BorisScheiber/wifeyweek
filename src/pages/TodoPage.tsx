@@ -7,13 +7,13 @@ import {
 } from "lucide-react";
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { todoService } from "../services/todoService";
 import dayjs from "dayjs";
 import SwipeableItem from "../components/SwipeableItem";
 import { usePrefetchTodos } from "../hooks/usePrefetchTodos";
-import { useTodoMutations } from "../hooks/useTodoMutations";
 import { useRealtimeSync } from "../hooks/useRealtimeSync";
+import { useSmartTodos } from "../hooks/useSmartTodos";
+import { useSmartToggle } from "../hooks/useSmartToggle";
+import { useSmartDelete } from "../hooks/useSmartDelete";
 
 export default function TodoPage() {
   const navigate = useNavigate();
@@ -73,27 +73,15 @@ export default function TodoPage() {
   const dayRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const hasScrolledInitially = useRef(false);
 
-  // useQuery für todos mit automatic refetch bei month/year change
-  const {
-    data: todos = [],
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ["todos", year, month],
-    queryFn: async () => {
-      // Zuerst wiederkehrende Aufgaben für diesen Monat generieren
-      await todoService.generateRecurringTodosForMonth(year, month);
-      // Dann alle Todos für den Monat laden
-      return todoService.getByMonth(year, month);
-    },
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
+  // Smart Todos - merged virtual + real todos mit optimaler Performance
+  const { data: todos = [], isLoading, error } = useSmartTodos(year, month);
 
   // Prefetch für 3 Monate (current ±1) im Hintergrund
   usePrefetchTodos(year, month);
 
-  // Mutations für optimistic updates
-  const { toggleTodo, deleteTodo } = useTodoMutations();
+  // Smart Mutations für Virtual + Real Todos
+  const { mutate: smartToggle } = useSmartToggle();
+  const { mutate: smartDelete } = useSmartDelete();
 
   // Realtime sync für Multi-Device Updates
   useRealtimeSync();
@@ -132,13 +120,21 @@ export default function TodoPage() {
     }
   }, [selectedIndex]);
 
-  // Use mutations instead of direct service calls
+  // Smart Mutations: Auto-detection für Virtual vs Real Todos
   const handleToggleDone = (id: string, is_done: boolean) => {
-    toggleTodo.mutate({ id, is_done });
+    // Finde das Todo object für Smart Toggle
+    const todo = todos.find((t) => t.id === id);
+    if (todo) {
+      smartToggle({ todo, newStatus: !is_done });
+    }
   };
 
   const handleDeleteTodo = (id: string) => {
-    deleteTodo.mutate({ id });
+    // Finde das Todo object für Smart Delete
+    const todo = todos.find((t) => t.id === id);
+    if (todo) {
+      smartDelete({ todo });
+    }
   };
 
   const handleMonthSelect = (index: number) => {

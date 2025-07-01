@@ -85,12 +85,19 @@ export function useRealtimeSync() {
             monthsToInvalidate.forEach((queryKey) => {
               queryClient.invalidateQueries({ queryKey });
             });
+
+            // PHASE 2: Invalidiere Virtual Todo Caches bei recurring_todos Änderungen
+            console.log("🧙‍♂️ Invalidiere Virtual Todo Caches...");
+            queryClient.invalidateQueries({ queryKey: ["recurring-rules"] });
+            queryClient.invalidateQueries({ queryKey: ["virtual-todos"] });
           } else {
             console.warn(
               "⚠️ Kein start_date in recurring_todos payload, invalidiere alle"
             );
-            // Fallback: Invalidiere alle todos queries
+            // Fallback: Invalidiere alle todos queries UND virtual todo caches
             queryClient.invalidateQueries({ queryKey: ["todos"] });
+            queryClient.invalidateQueries({ queryKey: ["recurring-rules"] });
+            queryClient.invalidateQueries({ queryKey: ["virtual-todos"] });
           }
         }
       )

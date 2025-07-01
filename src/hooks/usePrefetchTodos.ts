@@ -35,8 +35,7 @@ export function usePrefetchTodos(currentYear: number, currentMonth: number) {
       queryClient.prefetchQuery({
         queryKey: ["todos", year, month],
         queryFn: async () => {
-          // Gleiche Logik wie in TodoPage: erst recurring generieren, dann laden
-          await todoService.generateRecurringTodosForMonth(year, month);
+          // ✅ Nur Real Todos laden - Virtual Todos werden durch useSmartTodos generiert
           return todoService.getByMonth(year, month);
         },
         staleTime: 1000 * 60 * 5, // 5 minutes
@@ -44,7 +43,7 @@ export function usePrefetchTodos(currentYear: number, currentMonth: number) {
     });
 
     console.log(
-      `Prefetching todos für:`,
+      `🚀 Prefetching Real Todos für:`,
       monthsToPreload
         .map(({ year, month }) => `${year}-${month + 1}`)
         .join(", ")

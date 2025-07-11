@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { todoService, type Todo } from "../services/todoService";
+import { clearVirtualTodoCache } from "../utils/virtualTodoGenerator";
 import dayjs from "dayjs";
 
 // Parameter Types für die Mutations
@@ -46,21 +47,33 @@ export function useTodoMutations() {
     const start = dayjs(startDate);
     const affectedMonths = new Set<string>(); // Use Set to avoid duplicates
 
-    // Calculate max reasonable iterations based on repeat unit
+    // 🎯 FIX: Berechne vernünftige Anzahl von Terminen für die Zukunft
+    // repeatCount ist die Anzahl der Einheiten zwischen Wiederholungen, nicht die Gesamtanzahl
     let maxIterations;
     switch (repeatUnit) {
       case "day":
-        maxIterations = Math.min(repeatCount, 365); // Max 1 year for daily
+        // Für täglich: 365 Tage = 1 Jahr Vorschau
+        maxIterations = Math.ceil(365 / repeatCount);
         break;
       case "week":
-        maxIterations = Math.min(repeatCount, 52); // Max 1 year for weekly
+        // Für wöchentlich: 52 Wochen = 1 Jahr Vorschau
+        maxIterations = Math.ceil(52 / repeatCount);
         break;
       case "month":
-        maxIterations = Math.min(repeatCount, 24); // Max 2 years for monthly
+        // Für monatlich: 24 Monate = 2 Jahre Vorschau
+        maxIterations = Math.ceil(24 / repeatCount);
         break;
       default:
         maxIterations = 12;
     }
+
+    // 🎯 DEBUG: Zeige die Berechnungslogik
+    console.log("🔍 DEBUG: calculateAffectedMonths", {
+      startDate,
+      repeatCount,
+      repeatUnit,
+      maxIterations,
+    });
 
     // Generate affected dates and extract unique months
     for (let i = 0; i < maxIterations; i++) {
@@ -77,10 +90,21 @@ export function useTodoMutations() {
       const monthKey = `${targetDate.year()}-${targetDate.month()}`;
       affectedMonths.add(monthKey);
 
+      // 🎯 DEBUG: Zeige jeden berechneten Termin
+      if (i < 5) {
+        // Nur die ersten 5 für Debug
+        console.log(
+          `🔍 DEBUG: Termin ${i + 1}: ${targetDate.format(
+            "YYYY-MM-DD"
+          )} → Monat: ${monthKey}`
+        );
+      }
+
       // Stop if we're too far in the future (performance limit)
       if (i > 50) break;
     }
 
+    console.log("🔍 DEBUG: Betroffene Monate:", Array.from(affectedMonths));
     return Array.from(affectedMonths);
   };
 
@@ -174,8 +198,70 @@ export function useTodoMutations() {
       await todoService.addRecurringTodo(params);
       return params;
     },
-    onSuccess: (data) => {
-      // OPTIMIZED: Smart calculation of affected months instead of blanket 12 months
+    onSuccess: async (data) => {
+      // 🎯 FIX: Kombinierte Invalidierung und explizite Refetch-Strategie
+      // für sofortige Updates ohne Race-Conditions
+      console.log("🔄 Recurring Todo: Starte Smart Invalidierung...");
+
+      // 0. ⚡ CRITICAL: Leere den internen Virtual Todo Cache
+      console.log("🧹 Recurring Todo: Leere internen Virtual Todo Cache");
+      clearVirtualTodoCache();
+
+      // 1. Invalidiere recurring-rules Query und warte auf vollständiges Reload
+      console.log(
+        "🔄 Recurring Todo: Invalidiere und lade recurring-rules neu"
+      );
+      await queryClient.invalidateQueries({
+        queryKey: ["recurring-rules"],
+      });
+
+      // 2. ⚡ AGGRESSIVE CACHE CLEARING: Entferne alle virtual-todos Queries komplett
+      console.log("🔄 Recurring Todo: Entferne alle virtual-todos Caches");
+      queryClient.removeQueries({ queryKey: ["virtual-todos"] });
+
+      // 3. 🎯 CRITICAL: Warte bis recurring-rules vollständig neu geladen sind
+      console.log(
+        "🔄 Recurring Todo: Warte auf vollständiges Reload der recurring-rules"
+      );
+
+      // Versuche die recurring-rules Query zu fetchen und warte darauf
+      try {
+        const newRules = await queryClient.fetchQuery({
+          queryKey: ["recurring-rules"],
+          queryFn: () => todoService.getAllRecurringTodos(),
+          staleTime: 0, // Force fresh fetch
+        });
+        console.log(
+          `✅ Recurring Todo: Recurring-rules erfolgreich neu geladen (${newRules.length} rules)`
+        );
+      } catch (error) {
+        console.error("❌ Fehler beim Laden der recurring-rules:", error);
+      }
+
+      // 4. Jetzt explizit alle virtual-todos Queries refetchen
+      setTimeout(() => {
+        console.log(
+          "🔄 Recurring Todo: Explizite Refetch aller virtual-todos mit neuen Rules"
+        );
+
+        // Hole alle aktiven virtual-todos Queries und refetch sie explizit
+        const activeVirtualQueries = queryClient
+          .getQueryCache()
+          .findAll({ queryKey: ["virtual-todos"], type: "active" });
+
+        activeVirtualQueries.forEach((query) => {
+          console.log("🔄 Refetch virtual-todos Query:", query.queryKey);
+          queryClient.refetchQueries({ queryKey: query.queryKey });
+        });
+
+        // Fallback: Wenn keine aktiven Queries gefunden wurden, invalidiere alle
+        if (activeVirtualQueries.length === 0) {
+          console.log("🔄 Fallback: Invalidiere alle virtual-todos Queries");
+          queryClient.invalidateQueries({ queryKey: ["virtual-todos"] });
+        }
+      }, 100); // Kürzere Pause da wir bereits auf die rules gewartet haben
+
+      // 3. OPTIMIZED: Smart calculation of affected months instead of blanket 12 months
       const affectedMonthKeys = calculateAffectedMonths(
         data.start_date,
         data.repeat_count,
@@ -187,6 +273,36 @@ export function useTodoMutations() {
         const [year, month] = monthKey.split("-").map(Number);
         return ["todos", year, month];
       });
+
+      // 🎯 CRITICAL FIX: Expliziter Check für TODAY
+      // Wenn das recurring Todo heute startet, stelle sicher dass der aktuelle Monat invalidiert wird
+      const today = dayjs();
+      const startDate = dayjs(data.start_date);
+
+      console.log("🔍 DEBUG: Heute-Check", {
+        startDate: data.start_date,
+        today: today.format("YYYY-MM-DD"),
+        isSameDay: startDate.isSame(today, "day"),
+      });
+
+      if (startDate.isSame(today, "day")) {
+        const todayQueryKey = ["todos", today.year(), today.month()];
+        const todayKeyString = JSON.stringify(todayQueryKey);
+
+        // Prüfe ob der heutige Monat bereits in der Liste ist
+        const isAlreadyIncluded = queryKeysToInvalidate.some(
+          (key) => JSON.stringify(key) === todayKeyString
+        );
+
+        if (!isAlreadyIncluded) {
+          queryKeysToInvalidate.push(todayQueryKey);
+          console.log(
+            "🎯 HEUTE-FIX: Aktueller Monat explizit hinzugefügt für sofortiges Update"
+          );
+        } else {
+          console.log("🎯 HEUTE-FIX: Aktueller Monat war bereits in der Liste");
+        }
+      }
 
       console.log(
         `🔄 Recurring Todo: Invalidiere ${queryKeysToInvalidate.length} betroffene Monate`

@@ -11,7 +11,7 @@ import dayjs from "dayjs";
 import SwipeableItem from "../components/SwipeableItem";
 import { usePrefetchTodos } from "../hooks/usePrefetchTodos";
 import { useRealtimeSync } from "../hooks/useRealtimeSync";
-import { useSmartTodos } from "../hooks/useSmartTodos";
+import { useSmartTodosOptimized as useSmartTodos } from "../hooks/useSmartTodosOptimized";
 import { useSmartToggle } from "../hooks/useSmartToggle";
 import { useSmartDelete } from "../hooks/useSmartDelete";
 

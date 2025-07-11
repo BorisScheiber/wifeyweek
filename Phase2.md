@@ -361,6 +361,158 @@ Nach Implementierung: Update Phase2.md und markiere Schritt als ✅.
 
 ---
 
+---
+
+## 🐛 CRITICAL BUGFIX: Recurring Todo Immediate Display Issue
+
+### 📋 Problem Description
+
+**Issue:** Nach erfolgreichem `addRecurringTodo` wurde das neue recurring todo nicht sofort in der UI angezeigt, sondern erst nach einem Reload. Das betraf nur neue recurring rules, deren erstes Vorkommen heute wäre.
+
+**Symptoms:**
+
+- ✅ Normale (nicht-wiederkehrende) Todos erscheinen sofort
+- ❌ Recurring Todos erscheinen erst nach Browser-Reload
+- ❌ Zukünftige Monate zeigten das recurring todo nicht an
+
+### 🔍 Root Cause Analysis
+
+**Primary Issues Identified:**
+
+1. **Query Invalidation Race-Condition**
+
+   - `["recurring-rules"]` wurde invalidiert, aber Virtual Todo Queries liefen vor vollständigem Reload
+   - `useVirtualTodos` hat `enabled: !isLoadingRules` → während Load sind Virtual Queries disabled
+
+2. **Internal Cache Problem**
+
+   - `virtualTodoGenerator.ts` hatte eigenen internen Cache (`virtualTodoCache`)
+   - React Query Caches wurden geleert, aber interner Cache blieb bestehen
+   - Resultat: `"⚡ Cache Hit: 8 Virtual Todos aus Cache geladen"` mit alten Daten
+
+3. **calculateAffectedMonths Logic Error**
+
+   - `maxIterations = Math.min(repeatCount, 24)` war falsch
+   - Bei "1x im Monat" → `repeatCount = 1` → nur 1 Iteration → nur aktueller Monat
+   - Sollte sein: `Math.ceil(24 / repeatCount)` für Zeitraum-basierte Berechnung
+
+4. **Missing Today-Check Fallback**
+   - Wenn `calculateAffectedMonths()` den aktuellen Monat übersprang
+   - Kein expliziter Fallback für "heute startende" recurring todos
+
+### 🛠️ Implemented Fixes
+
+**Fix 1: Hook Upgrade (`TodoPage.tsx`)**
+
+```typescript
+// Vorher: Grundlegende Version
+import { useSmartTodos } from "../hooks/useSmartTodos";
+
+// Nachher: Optimierte Version mit besserer Cache-Invalidierung
+import { useSmartTodosOptimized as useSmartTodos } from "../hooks/useSmartTodosOptimized";
+```
+
+**Fix 2: Internal Cache Clearing (`useTodoMutations.ts`)**
+
+```typescript
+// Import hinzugefügt
+import { clearVirtualTodoCache } from "../utils/virtualTodoGenerator";
+
+// Im addRecurringTodoMutation:
+// 0. ⚡ CRITICAL: Leere den internen Virtual Todo Cache
+console.log("🧹 Recurring Todo: Leere internen Virtual Todo Cache");
+clearVirtualTodoCache();
+```
+
+**Fix 3: Race-Condition Lösung**
+
+```typescript
+// Vorher: Nur invalidate + setTimeout
+await queryClient.invalidateQueries({ queryKey: ["recurring-rules"] });
+
+// Nachher: Explizite fetchQuery mit await
+const newRules = await queryClient.fetchQuery({
+  queryKey: ["recurring-rules"],
+  queryFn: () => todoService.getAllRecurringTodos(),
+  staleTime: 0, // Force fresh fetch
+});
+```
+
+**Fix 4: calculateAffectedMonths Korrektur**
+
+```typescript
+// Vorher (falsch):
+maxIterations = Math.min(repeatCount, 24); // repeatCount=1 → nur 1 Iteration
+
+// Nachher (richtig):
+maxIterations = Math.ceil(24 / repeatCount); // 24/1 = 24 Monate Vorschau
+```
+
+**Fix 5: Today-Check Fallback**
+
+```typescript
+// Expliziter Check für heute startende recurring todos
+const today = dayjs();
+const startDate = dayjs(data.start_date);
+
+if (startDate.isSame(today, "day")) {
+  const todayQueryKey = ["todos", today.year(), today.month()];
+  const isAlreadyIncluded = queryKeysToInvalidate.some(
+    (key) => JSON.stringify(key) === JSON.stringify(todayQueryKey)
+  );
+
+  if (!isAlreadyIncluded) {
+    queryKeysToInvalidate.push(todayQueryKey);
+    console.log("🎯 HEUTE-FIX: Aktueller Monat explizit hinzugefügt");
+  }
+}
+```
+
+### 🎯 Final Solution Architecture
+
+**Complete Invalidation Flow:**
+
+1. ⚡ **Clear Internal Cache**: `clearVirtualTodoCache()`
+2. 🔄 **Invalidate & Wait**: `await queryClient.invalidateQueries(["recurring-rules"])`
+3. 📡 **Force Fresh Fetch**: `await queryClient.fetchQuery(["recurring-rules"])`
+4. 🧹 **Clear Virtual Caches**: `queryClient.removeQueries(["virtual-todos"])`
+5. 🎯 **Explicit Refetch**: alle aktiven virtual-todos Queries
+6. 📅 **Smart Month Calculation**: Korrekte `calculateAffectedMonths` Logic
+7. 🌅 **Today Fallback**: Expliziter Check für heute startende Todos
+
+### ✅ Validation & Results
+
+**Before Fix:**
+
+- ❌ Recurring todo nur nach Reload sichtbar
+- ❌ Zukünftige Monate fehlen
+- ❌ `"⚡ Cache Hit"` mit veralteten Daten
+- ❌ Race-Conditions bei schneller Navigation
+
+**After Fix:**
+
+- ✅ Recurring todo erscheint **sofort** nach Speichern
+- ✅ Alle zukünftigen Monate korrekt angezeigt
+- ✅ Kein Cache-Hit mit alten Daten
+- ✅ Konsistente Anzeige auch bei schneller Navigation
+- ✅ Funktioniert für alle Patterns: täglich, wöchentlich, monatlich
+
+**Test Cases Verified:**
+
+- ✅ "Heute 1x die Woche" → sofort sichtbar, nächste Woche korrekt
+- ✅ "Heute 1x im Monat" → sofort sichtbar, nächster Monat korrekt
+- ✅ "Morgen 1x die Woche" → ab morgen sichtbar, folgende Wochen korrekt
+
+### 📚 Key Learnings
+
+1. **Mehrschichtige Caches**: React Query + interne Caches müssen synchron geleert werden
+2. **Race-Conditions**: Bei Async Operations explizit auf Dependencies warten
+3. **Query Dependencies**: `enabled` Conditions können Invalidation verhindern
+4. **Today-Edge-Cases**: Explizite Fallbacks für "heute startende" Events
+5. **Logic vs Math**: `repeatCount` ist Intervall, nicht Anzahl Termine
+
+---
+
 ## 🧪 Future Extensions (Phase 3)
 
 - 📅 **Complex Recurrence Patterns** (every 2nd Tuesday)

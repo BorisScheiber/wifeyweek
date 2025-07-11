@@ -178,14 +178,14 @@ export function useTodoMutations() {
 
       return { previousTodos, queryKey, tempId };
     },
-    onError: (error, variables, context) => {
+    onError: (error, _, context) => {
       console.error("Fehler beim Hinzufügen des Todos:", error);
       // Rollback optimistic update
       if (context?.previousTodos) {
         queryClient.setQueryData(context.queryKey, context.previousTodos);
       }
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (_, variables) => {
       // OPTIMIZED: Only invalidate if necessary (reduced unnecessary refetches)
       const queryKey = getQueryKeyForDate(variables.date);
       queryClient.invalidateQueries({ queryKey });
@@ -349,7 +349,7 @@ export function useTodoMutations() {
 
       return { previousTodos, affectedQueryKey };
     },
-    onError: (error, variables, context) => {
+    onError: (error, _, context) => {
       console.error("Fehler beim Umschalten des Todo-Status:", error);
       // Rollback optimistic update
       if (context?.previousTodos && context?.affectedQueryKey) {
@@ -391,7 +391,7 @@ export function useTodoMutations() {
 
       return { previousTodos, affectedQueryKey, deletedTodo };
     },
-    onError: (error, variables, context) => {
+    onError: (error, _, context) => {
       console.error("Fehler beim Löschen des Todos:", error);
       // Rollback optimistic update
       if (context?.previousTodos && context?.affectedQueryKey) {

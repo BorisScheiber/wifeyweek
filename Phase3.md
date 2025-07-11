@@ -2,9 +2,9 @@
 
 ---
 
-## 🟠 Before Phase 3 Start: Felder auslagern
+## 🔠 Before Phase 3 Start: Felder auslagern
 
-### 🧩 Schritte für Cursor (Todo-Auslagerung)
+### 🧹 Schritte für Cursor (Todo-Auslagerung)
 
 1. `TitleField.tsx` erstellen
 
@@ -38,7 +38,7 @@
 
 Die Felder für Datum, Uhrzeit und Wiederholung (repeat) sollen in wiederverwendbare Komponenten ausgelagert werden. So können sie sowohl in der `CreateTodoPage` als auch später in der `EditTodoPage` verwendet werden – ohne Style-Duplikate und Copy-Paste.
 
-### 📦 Auszulagernde Komponenten
+### 📆 Auszulagernde Komponenten
 
 1. `TitleField.tsx` – für das erste Eingabefeld (Titel)
 2. `DateField.tsx` – für `<MobileDatePicker />`
@@ -53,7 +53,7 @@ Die Felder für Datum, Uhrzeit und Wiederholung (repeat) sollen in wiederverwend
 
 ### ✅ Definition of Done
 
-Alle vier Komponenten (`TitleField`, `DateField`, `TimeField`, `RepeatField`) sind erstellt, in `CreateTodoPage` eingebaut und funktionieren exakt wie bisher – ohne Duplikate, mit sauberen Props (`value`, `onChange`, etc.) und identischem Styling & Verhalten. und funktionieren exakt wie bisher – ohne Duplikate, mit sauberen Props (`value`, `onChange`, etc.) und identischem Styling & Verhalten.
+Alle vier Komponenten (`TitleField`, `DateField`, `TimeField`, `RepeatField`) sind erstellt, in `CreateTodoPage` eingebaut und funktionieren exakt wie bisher – ohne Duplikate, mit sauberen Props (`value`, `onChange`, etc.) und identischem Styling & Verhalten.
 
 ---
 
@@ -64,14 +64,68 @@ beginnt Phase 3.
 
 ---
 
-## 🕒 Phase 3 Übersicht
+# 🎮 WifeyWeek **Phase 3 – Todo Editing, Templates & Intelligence**
 
-> (Diese Sektion wird schrittweise erweitert)
+> *Build on Phases 1 & 2: instant TanStack Query UI ↔ Supabase Realtime ↔ Virtual Recurring System.*
 
-Phase 3 kümmert sich um das **Bearbeiten bestehender Todos**, das Erkennen und Updaten von **Recurring Todos** und intelligente Vorschläge.
+---
 
-### 🔄 Ziel Schritt 1:
+## 🚦 Voraussetzungen (erfüllt)
 
-* Klick auf ein Todo → navigiert zu `/edit/:id`
-* Bestehende Daten werden vorausgefüllt (inkl. Wiederholungsinfo bei `recurring_id`)
-* Felder wie bei "Hinzufügen", aber **Edit-Modus**
+| Phase | Kern-Features                                                                                                                                   | ✅ Status         |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| **1** | TanStack Query Setup · Optimistic Updates · Realtime Sync                                                                                       | ✔️ abgeschlossen |
+| **2** | **Virtual Recurring System** (client-seitig, keine DB-Klone) · Smart Toggle/Delete · Performance Optimierungen · **Bugfix „Immediate Display“** | ✔️ abgeschlossen |
+| **3** | **Edit-Funktionalität für Todos (fokussiert auf Schritt 3-1)**                                                                                  | ➡️ *jetzt*       |
+
+---
+
+## 🿬️ Roadmap Phase 3 (High-Level)
+
+|  Schritt | Ziel                    | Hauptergebnis                                                      | Akzeptanzkriterien                                                                                                                                |
+| -------- | ----------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **3-1**  | **EditTodoPage**        | Ein eigenes Formular zum Bearbeiten eines Todos (Route /edit/\:id) | ‑ Felder vorausgefüllt · Buttons X/✓ identisch zur Create-Page · Speichern nur bei Änderungen · Mutation wählt Tabelle abhängig von recurring\_id |
+| **3-2**  | **Recurring Edit-Modi** | Unterstützt „Dieses Vorkommen“, „Ab hier“, „Gesamte Serie“         | ‑ Auswahl-Modal · Smart Materialize/Update recurring rule · Alle betroffenen Virtual Todos aktualisieren                                          |
+
+## 🔄 **Schritt 3-1 – EditTodoPage** (detailliert für Cursor)
+
+### 📂 Dateien & Strukturen
+
+| Neu/Ändern | Datei                       | Zweck                                     |
+| ---------- | --------------------------- | ----------------------------------------- |
+| **➕**      | src/pages/EditTodoPage.tsx  | Hauptseite zum Bearbeiten                 |
+| **➕**      | src/hooks/useTodoEdit.ts    | Gemeinsame Mutations- & Dirty-State-Logik |
+| **✏️**     | src/routes.tsx oder App.tsx | Route /edit/\:id registrieren             |
+
+### 🔧 Aufgaben-Checklist
+
+1. **Route anlegen** → react-router-dom \<Route path="/edit/\:id" element={<EditTodoPage/>} />
+2. **Todo laden** → const { data: todo } = useQuery(\["todo", id])
+3. **Komponenten reuse** → TitleField, DateField, TimeField, RepeatField (controlled via local state)
+4. **Dirty Check** → Button ✓ aktiv, wenn isDirty === true
+5. **Mutation-Hook** →
+
+```ts
+if (todo.recurring_id) {
+  updateRecurringRule.mutate(...)
+} else {
+  updateTodo.mutate(...)
+}
+```
+
+6. **Query Invalidation** → queryClient.invalidateQueries(\["todos", year, month]) + ggf. recurring-rules
+7. **Navigation** → navigate(-1) bei X oder nach Success
+8. **Edge-Cases** →
+
+   * Recurring todo, dessen Startdatum > heute 🔄 Virtual Update
+   * User löscht alle Werte → Validation
+
+### ✅ Definition of Done (Schritt 3-1)
+
+* Alle obigen Punkte wurden von Cursor implementiert
+* Test und visuelle Kontrolle übernehme **ich selbst** (nicht Cursor)
+* UI/UX konsistent zur Create-Page
+* Keine Regressions laut Cypress Smoke-Suite
+* Roadmap-Markdown → Schritt 3-1 als **✅** markiert
+
+> Nach Abnahme von Schritt 3-1 dokumentieren wir 3-2 und starten die nächsten Cursor-Prompts.

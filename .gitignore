@@ -27,6 +27,3 @@ dist-ssr
 # Environment variables
 .env
 .env.*
-
-# Claude Code documentation
-CLAUDE.md
